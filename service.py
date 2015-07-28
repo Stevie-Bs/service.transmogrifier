@@ -32,13 +32,14 @@ DB_FILE = vfs.join(DATA_PATH, 'cache.db')
 DB=SQLiteDatabase(DB_FILE)
 
 class Transmorgifier():
-	def __init__(self, url, filename):
+	def __init__(self, url, filename, id):
 		self.__abort_all = False
 		self.threads = 5
 		self.active_threads = 0
 		self.cached = 0
 		self.url = url
 		self.filename = filename
+		self.id = id
 		self.Pool = ThreadPool(NUMBER_THREADS)
 		self.completed = []
 		self.compiled = []
@@ -129,12 +130,15 @@ class Service():
 		self._url = False #'https://www.kernel.org/pub/dist/superrescue/v2/superrescue-2.1.2.iso.gz' 
 
 	def poll_queue(self):
-		SQL = "SELECT filename, url FROM queue WHERE status=1 ORDER BY priority, id DESC LIMIT 1"
+		SQL = "SELECT filename, url, id FROM queue WHERE status=1 ORDER BY priority, id DESC LIMIT 1"
 		row = DB.query(SQL)
 		if row:
-			self._name = row[0]
-			self._url = row[1]
-			return row[0], row[1]
+			name = row[0]
+			url = row[1]
+			id = row[2]
+			DB.execute("UPDATE queue SET status=2 WHERE id=?", [id])
+			DB.commit()
+			return row[0], row[1], row[2]
 		else:
 			return False, False
 		
@@ -150,9 +154,9 @@ class Service():
 			if monitor.waitForAbort(1) or self.__abort_all==True:
 				break
 			
-			filename, url = self.poll_queue()
+			filename, url, id = self.poll_queue()
 			if url:
-				TM = Transmorgifier(url, filename)
+				TM = Transmorgifier(url, filename, id)
 				TM.start()
 			
 		ADDON.log("Service stopping...")
