@@ -1,0 +1,163 @@
+import os
+import sys
+import re
+import string
+import unicodedata
+import xbmc
+import xbmcgui
+import xbmcvfs
+from common import *
+
+class VFSClass:
+	def __init__(self, root='/', debug=False):
+		self.debug = debug
+		self.root = root
+	
+	def _resolve_path(self, path):
+		return path.replace('/', os.sep)	
+
+	def confirm(self, msg='', msg2='', msg3=''):
+		dialog = xbmcgui.Dialog()
+		return dialog.yesno(msg, msg2, msg3)
+
+	def open(self, path, mode='r'):
+		try:
+			return xbmcvfs.File(path, mode)
+		except Exception, e:
+			xbmc.log('******** VFS error: %s' % e)
+			return False
+
+	def read_file(self, path, soup=False, json=False):
+		try:
+			file = self.open(path, 'r')
+			content=file.read()
+			file.close()
+			if soup:
+				from BeautifulSoup import BeautifulSoup, Tag, NavigableString
+				soup = BeautifulSoup(content)
+				return soup
+			elif json:
+				try: 
+					import simplejson as json
+				except ImportError: 
+					import json
+				return json.loads(content)
+			else:
+				return content
+		except IOError, e:
+			xbmc.log('******** VFS error: %s' % e)
+			return None
+
+	def write_file(self, path, content, mode='w'):
+		try:
+			file = self.open(path, mode)
+			file.write(content)
+			file.close()
+			return True
+		except IOError, e:
+			xbmc.log('******** VFS error: %s' % e)
+			return False
+	
+	def clean_file_name(self, filename):
+		filename = unicode(filename)
+		validFilenameChars = "-_.() %s%s" % (string.ascii_letters, string.digits)
+		cleanedFilename = unicodedata.normalize('NFKD', filename).encode('ASCII', 'ignore')
+		return ''.join(c for c in cleanedFilename if c in validFilenameChars)
+		
+	def touch(self, path):
+		try:
+			if self.exists(path):
+				self.open(path, 'r')
+				return True
+			else:
+				self.open(path, 'w')
+				return True
+		except Exception, e:
+			xbmc.log('******** VFS error: %s' % e)
+			return False
+
+	def exists(self, path):
+		return xbmcvfs.exists(path)
+
+	def ls(self, path):
+		try:
+			return xbmcvfs.listdir(path)
+		except Exception, e:
+			xbmc.log('******** VFS error: %s' % e)
+			return False
+
+	def mkdir(self, path, recursive=False):
+		if self.exists(path):
+			if self.debug:
+				xbmc.log('******** VFS mkdir notice: %s exists' % path)
+			return False
+		if recursive:
+			try:
+				return xbmcvfs.mkdirs(path)
+			except Exception, e:
+				xbmc.log('******** VFS error: %s' % e)
+				return False
+		else:
+			try:
+				return xbmcvfs.mkdir(path)
+			except Exception, e:
+				xbmc.log('******** VFS error: %s' % e)
+				return False
+
+	def rmdir(self, path, quiet=False):
+		if not self.exists(path):
+			if self.debug:
+				xbmc.log('******** VFS rmdir notice: %s does not exist' % path)
+			return False
+		if not quiet:
+			msg = 'Remove Directory'
+			msg2 = 'Please confirm directory removal!'
+			if not self.confirm(msg, msg2, path): return False
+		try:		
+			xbmcvfs.rmdir(path)
+		except Exception, e:
+			xbmc.log('******** VFS error: %s' % e)
+
+	def rm(self, path, quiet=False, recursive=False):
+		if not self.exists(path):
+			if self.debug:
+				xbmc.log('******** VFS rmdir notice: %s does not exist' % path)
+			return False
+		if not quiet:
+			msg = 'Confirmation'
+			msg2 = 'Please confirm directory removal!'
+			if not self.confirm(msg, msg2, path): return False
+
+		if not recursive:
+			try:
+				xbmcvfs.delete(path)
+			except Exception, e:
+				xbmc.log('******** VFS error: %s' % e)
+		else:
+			dirs,files = self.ls(path)
+			for f in files:
+				rm = os.path.join(xbmc.translatePath(path), f)
+				try:
+					xbmcvfs.delete(rm)
+				except Exception, e:
+					xbmc.log('******** VFS error: %s' % e)
+			for d in dirs:
+				subdir = os.path.join(xbmc.translatePath(path), d)
+				self.rm(subdir, quiet=True, recursive=True)
+			try:			
+				xbmcvfs.rmdir(path)
+			except Exception, e:
+				xbmc.log('******** VFS error: %s' % e)
+	def cp(self, src, dest):
+		pass
+
+	def mv(self, src, dest):
+		pass
+
+	def join(self, path, filename, preserve=False):
+		path = path.replace('/', os.sep)
+		if not preserve:
+			translatedpath = os.path.join(xbmc.translatePath( path ), ''+filename+'')
+		else:
+			translatedpath = os.path.join(path, ''+filename+'')
+		return translatedpath
