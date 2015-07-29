@@ -1,4 +1,4 @@
-import sys,os
+import sys,os,re
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', 'lib'))
 from common import *
 IGNORE_UNIQUE_ERRORS = True

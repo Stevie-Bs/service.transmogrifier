@@ -7,13 +7,11 @@ import math
 import xbmc
 import urllib2
 import shutil
-from Queue import Queue
 from threading import Thread
 import time
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', 'lib'))
 from threadpool import *
 from common import *
-from vfs import VFSClass
 from vfs import VFSClass
 vfs = VFSClass()
 
@@ -28,6 +26,8 @@ if not vfs.exists(WORKING_DIRECTORY):
 if not vfs.exists(CACHE_DIRECTORY):
 	vfs.mkdir(CACHE_DIRECTORY)
 from database import *
+if not vfs.exists(DATA_PATH):
+	vfs.mkdir(DATA_PATH)
 DB_FILE = vfs.join(DATA_PATH, 'cache.db')
 DB=SQLiteDatabase(DB_FILE)
 
@@ -90,7 +90,7 @@ class Transmorgifier():
 		
 	def assemble(self):
 		ADDON.log("Waiting to assemble segments")
-		output_file = vfs.join(CACHE_DIRECTORY, "video.avi")
+		output_file = vfs.join(CACHE_DIRECTORY, vfs.clean_file_name(self.filename) + ".avi")
 		stream = vfs.open(output_file, 'w')
 		p=0
 		while(p < self.total_segments):
@@ -104,7 +104,9 @@ class Transmorgifier():
 				p = p+1
 			xbmc.sleep(50)
 		stream.close()
-		ADDON.log("Done assembling %s" %s self.name)
+		DB.execute("UPDATE queue SET status=3 WHERE id=?", [self.id])
+		DB.commit()
+		ADDON.log("Done assembling %s" % self.name)
 		
 	def start(self):
 		self.get_target_info()
@@ -140,7 +142,7 @@ class Service():
 			DB.commit()
 			return row[0], row[1], row[2]
 		else:
-			return False, False
+			return False, False, False
 		
 	def start(self):
 
