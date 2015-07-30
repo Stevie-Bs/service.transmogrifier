@@ -104,32 +104,38 @@ class Transmorgifier():
 				p = p+1
 			xbmc.sleep(50)
 		stream.close()
-		DB.execute("UPDATE queue SET status=3 WHERE id=?", [self.id])
-		DB.commit()
-		ADDON.log("Done assembling %s" % self.name)
+		#DB.execute("UPDATE queue SET status=3 WHERE id=?", [self.id])
+		#DB.commit()
+		#ADDON.log("Done assembling %s" % self.filename)
 		
 	def start(self):
-		self.get_target_info()
-		for p in range(0, self.total_segments):
-			self.Pool.queueTask(self.transmorgify, p, self.transmorgified)
+		valid = self.get_target_info()
+		if valid:
+			for p in range(0, self.total_segments):
+				self.Pool.queueTask(self.transmorgify, p, self.transmorgified)
+				
+			assembler = Thread(target=self.assemble)
+			assembler.start()
 			
-		assembler = Thread(target=self.assemble)
-		assembler.start()
-		
-		self.Pool.joinAll()
+			self.Pool.joinAll()
+		else:
+			ADDON.log('Invalid url, sorry!')
 		
 
 	def get_target_info(self):
-		self.net = urllib2.urlopen(self.url)
-		self.headers = self.net.headers.items()
-		self.total_bytes = int(self.net.headers["Content-Length"])
-		self.total_segments = int(math.ceil(self.total_bytes / SEGMENT_SIZE))
-
+		try:
+			self.net = urllib2.urlopen(self.url)
+			self.headers = self.net.headers.items()
+			self.total_bytes = int(self.net.headers["Content-Length"])
+			self.total_segments = int(math.ceil(self.total_bytes / SEGMENT_SIZE))
+		except:
+			return False
+		return True
 
 class Service():
 	def __init__(self):
 		self.__abort_all=False
-		self._url = False #'https://www.kernel.org/pub/dist/superrescue/v2/superrescue-2.1.2.iso.gz' 
+		self._url = False 
 
 	def poll_queue(self):
 		SQL = "SELECT filename, url, id FROM queue WHERE status=1 ORDER BY priority, id DESC LIMIT 1"
@@ -158,8 +164,15 @@ class Service():
 			
 			filename, url, id = self.poll_queue()
 			if url:
+				self.id=id
+				started = time.time()
 				TM = Transmorgifier(url, filename, id)
 				TM.start()
+				DB.execute("UPDATE queue SET status=3 WHERE id=?", [self.id])
+				DB.commit()
+				now = time.time()
+				delta = int(now - started)
+				ADDON.log('Completed %s in %s (s).' % (TM.filename, delta))
 			
 		ADDON.log("Service stopping...")
 

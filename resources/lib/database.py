@@ -4,7 +4,7 @@ from common import *
 IGNORE_UNIQUE_ERRORS = True
 
 class DatabaseClass:
-	def __init__(self, quiet=False):
+	def __init__(self, quiet=True):
 		self.quiet=quiet
 
 	def commit(self):
@@ -48,6 +48,9 @@ class SQLiteDatabase(DatabaseClass):
 		self.execute('CREATE TABLE IF NOT EXISTS "queue" ("id" INTEGER PRIMARY KEY AUTOINCREMENT, "priority" INTEGER DEFAULT (10), "video_type" TEXT, "filename" TEXT, "raw_url" TEXT, "url" TEXT, "status" INTEGER DEFAULT (1))')
 		self.commit()
 		ADDON.addon.setSetting('database_init', 'true')	
+
+	def close(self):
+		self.DBH.close()
 
 	def _connect(self):
 		global ADDON
