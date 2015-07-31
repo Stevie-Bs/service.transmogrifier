@@ -3,6 +3,10 @@
     <category label="32020">
         <setting label="Output Directory" type="folder" default="special://userdata/addon_data/service.transmogrifier/downloads" id="save_directory" />
         <setting label="Working Directory" type="folder" default="special://userdata/addon_data/service.transmogrifier/work" id="work_directory" />
+        <setting id="thread_number" type="slider" label="Max Threads" default="5" option="int" range="1,10"/>
+        <setting id="chunk_size" type="labelenum" label="Buffer Size (KB)" values="500|750|1000|1250|1500|1750|2000" default="1500" />
+        <setting id="segment_size" type="labelenum" label="Segment Size (MB)" values="5|10|15|20|25|50" default="10" />
+        <setting id="log_level" type="enum" values="Standard|Verbose" label="Log Level" default="1"/>
         <setting id="database_init" default="false" />
     </category>
 </settings>

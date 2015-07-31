@@ -45,7 +45,7 @@ class SQLiteDatabase(DatabaseClass):
 		self._connect()
 	
 	def _initialize(self):
-		self.execute('CREATE TABLE IF NOT EXISTS "queue" ("id" INTEGER PRIMARY KEY AUTOINCREMENT, "priority" INTEGER DEFAULT (10), "video_type" TEXT, "filename" TEXT, "raw_url" TEXT, "url" TEXT, "status" INTEGER DEFAULT (1))')
+		self.execute('CREATE TABLE IF NOT EXISTS "queue" ("id" INTEGER PRIMARY KEY AUTOINCREMENT, "priority" INTEGER DEFAULT (10), "video_type" TEXT, "filename" TEXT, "uuid" TEXT, "raw_url" TEXT, "url" TEXT, "status" INTEGER DEFAULT (1))')
 		self.commit()
 		ADDON.addon.setSetting('database_init', 'true')	
 
