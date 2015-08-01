@@ -29,7 +29,7 @@ class MyAddon(Addon):
 		xbmc.executebuiltin("XBMC.Notification('"+title+"','"+message+"',time)")
 
 ADDON_ID = 'service.transmogrifier'
-ADDON_NAME = 'Transmorgifier'
+ADDON_NAME = 'Transmogrifier'
 ADDON = MyAddon(ADDON_ID,ARGS)
 ADDON_NAME = ADDON.get_name()
 VERSION = ADDON.get_version()

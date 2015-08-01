@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<addon id="service.transmogrifier" name="Transmogrifier" provider-name="DudeHere" version="0.0.3">
+<addon id="service.transmogrifier" name="Transmogrifier" provider-name="DudeHere" version="0.0.5">
     <requires>
         <import addon="xbmc.python" version="2.1.0" />
         <import addon="script.module.simplejson" />
@@ -13,7 +13,7 @@
     <extension library="service.py" point="xbmc.service" start="startup" />
     <extension point="xbmc.addon.metadata">
         <platform>all</platform>
-        <summary>Transmorgification is a new technology.</summary>
+        <summary>Transmogrification is a new technology.</summary>
         <description>Tell it what to get, and it gets it.</description>
     </extension>
 </addon>

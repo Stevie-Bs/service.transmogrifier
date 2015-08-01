@@ -19,10 +19,21 @@ def add_to_queue():
 	DB.execute(SQL, [args['video_type'], args['filename'], args['raw_url'], args['resolved_url']])
 	DB.commit()
 
-
+def view_queue():
+	from pyxbmctmanager.window import Window
+	class QueueWindow(Window):
+		def __init__(self, title):
+			super(self.__class__,self).__init__(title,width=1000, height=650, columns=4, rows=10)
+			self.draw()
+			
+		def set_info_controls(self):
+			pass
+	queue = QueueWindow('%s Version: %s' % (ADDON_NAME, VERSION))
+	queue.show()
+	
 args = ADDON.parse_query(sys.argv[2])
 print args
 if args['mode'] == 		'main':
-	print "blah"
+	view_queue()
 elif args['mode'] ==	'add_to_queue':
 	add_to_queue()	
