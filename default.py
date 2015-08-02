@@ -13,7 +13,10 @@ from vfs import VFSClass
 vfs = VFSClass()
 DB_FILE = vfs.join(DATA_PATH, 'cache.db')
 DB=SQLiteDatabase(DB_FILE)
-ACTION_ENTER = 13 # What is this code?
+
+MESSAGE_ACTION_OK = 110
+MESSAGE_EXIT = 111
+ACTION_ENTER = 13
 ACTION_SELECT_ITEM = 7
 
 def add_to_queue():
@@ -22,7 +25,7 @@ def add_to_queue():
 	DB.commit()
 
 def view_queue():
-	from pyxbmctmanager.window import Window
+	'''from pyxbmctmanager.window import Window
 	class statusWindow(Window):
 		def __init__(self, title):
 			super(self.__class__,self).__init__(title,width=400, height=250, columns=3, rows=5)
@@ -86,8 +89,15 @@ def view_queue():
 			self.set_object_event("focus", "queue")
 	queue = QueueWindow('%s Version: %s' % (ADDON_NAME, VERSION))
 	queue.set_object_event("focus", "queue")
-	queue.show()
+	queue.show()'''
+	class StatusWindow(xbmcgui.WindowXMLDialog):
+		
+		def onInit(self):
+			pass
 	
+	ui = StatusWindow('transmogrifier.xml', ROOT_PATH)
+	ui.doModal()
+	del ui
 	
 args = ADDON.parse_query(sys.argv[2])
 print args

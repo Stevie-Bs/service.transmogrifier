@@ -16,8 +16,8 @@ from common import *
 from vfs import VFSClass
 vfs = VFSClass()
 
-SEGMENT_SIZE = int(int(ADDON.get_setting('segment_size')) * 1000 * 1000)
-CHUNK_SIZE = int(int(ADDON.get_setting('chunk_size')) * 1.024)
+SEGMENT_SIZE = int(float(ADDON.get_setting('segment_size')) * 1000 * 1000)
+CHUNK_SIZE = int(float(ADDON.get_setting('chunk_size')) * 1.024)
 NUMBER_THREADS = int(ADDON.get_setting('thread_number'))
 CACHE_DIRECTORY = ADDON.get_setting('save_directory')
 MOVIE_DIRECTORY = vfs.join(CACHE_DIRECTORY, 'Movies')
