@@ -181,8 +181,7 @@ class Service():
 		self.run()
 	
 	def run(self):
-		#DB.execute("UPDATE queue set status=1")
-		#DB.commit()
+
 		ADDON.log("Service starting...", 1)
 		monitor = xbmc.Monitor()
 		ADDON.log("Waiting to Transmogrify...",1)
