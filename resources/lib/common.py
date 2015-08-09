@@ -5,7 +5,6 @@ import unicodedata
 from addon.common.addon import Addon
 
 ARGS = sys.argv
-#print ARGS
 try:
 	int(ARGS[1])
 except:
