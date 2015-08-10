@@ -16,7 +16,7 @@ from common import *
 from vfs import VFSClass
 vfs = VFSClass()
 
-DISABLED = True
+DISABLED = False
 
 SEGMENT_SIZE = int(float(ADDON.get_setting('segment_size')) * 1000 * 1000)
 CHUNK_SIZE = int(float(ADDON.get_setting('chunk_size')) * 1.024)
@@ -107,16 +107,16 @@ class Transmogrifier():
 				if not buff: break
 				self.cached = self.cached + len(buff)
 				fp.write(buff)
-				percent, delta, kbs = self.calculate_progress()
+				delta, kbs = self.calculate_progress()
 				self.set_property("cached", self.cached)
 				self.set_property("time_delta", delta)
-				self.set_property("percent", percent)
 			except Exception, e:
 				print e
 				ADDON.log("Requeue Segment %s" % p)
 				p = p * -1
 				return p
-		ADDON.log("Download: %s% %s/%s %sKBs" % (percent, self.cached, self.total_bytes, kbs))
+		percent = int(100 * self.cached / self.total_bytes)
+		ADDON.log("Progress: %s%s %s/%s %s KBs" % (percent, '%', self.cached, self.total_bytes, kbs))
 		return p
 		
 	def transmogrified(self, result):
@@ -134,9 +134,11 @@ class Transmogrifier():
 	def assemble(self):
 		ADDON.log("Waiting to assemble segments...", 1)
 		if self.video_type=='tvshow':
-			output_file = vfs.join(TVSHOW_DIRECTORY, vfs.clean_file_name(self.filename) + ".avi")
+			output_file = vfs.join(TVSHOW_DIRECTORY, vfs.clean_file_name(self.filename) + ".avi.temp")
+			final_file = vfs.join(TVSHOW_DIRECTORY, vfs.clean_file_name(self.filename) + ".avi")
 		else:
-			output_file = vfs.join(MOVIE_DIRECTORY, vfs.clean_file_name(self.filename) + ".avi")
+			output_file = vfs.join(MOVIE_DIRECTORY, vfs.clean_file_name(self.filename) + ".avi.temp")
+			final_file = vfs.join(MOVIE_DIRECTORY, vfs.clean_file_name(self.filename) + ".avi")
 		stream = vfs.open(output_file, 'w')
 		p=0
 		while(p < self.total_segments):
@@ -150,26 +152,21 @@ class Transmogrifier():
 				p = p+1
 			xbmc.sleep(50)
 		stream.close()
-		#try:
-		#now = time.time()
-		#delta = int(now - self.started)
-		#kbs = int(self.total_bytes / (delta * 1000))
-		percent, delta, kbs = self.calculate_progress()
+		delta, kbs = self.calculate_progress()
+
+		vfs.rename(output_file, final_file, quiet=True)
 		message = 'Completed %s in %s second(s) at %s KB/s.' % (self.filename, delta, kbs)
 		ADDON.log(message, 1)
 		ADDON.raise_notify(ADDON_NAME, message)
-		#except:
-		#	pass
 	
 	def calculate_progress(self):
 		try:
 			now = time.time()
 			delta = int(now - self.started)
 			kbs = int(self.total_bytes / (delta * 1000))
-			percent = int((self.cached / self.total_bytes) * 100)
-			return percent, delta, kbs
+			return delta, kbs
 		except:
-			return False, False, False
+			return False, False
 	def start(self):
 		valid = self.get_target_info()
 		if valid:
@@ -218,7 +215,7 @@ class Service():
 			DB.commit()
 			message = "Queued: %s" % name
 			ADDON.raise_notify(ADDON_NAME, message)
-			url = 'http://fins/test.avi'
+			#url = 'http://fins/test.avi'
 			return name, url, id, file_id, video_type
 		else:
 			return False, False, False, False, False

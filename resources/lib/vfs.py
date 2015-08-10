@@ -148,6 +148,14 @@ class VFSClass:
 				xbmcvfs.rmdir(path)
 			except Exception, e:
 				xbmc.log('******** VFS error: %s' % e)
+	
+	def rename(self, src, dest, quiet=False):
+		if not quiet:
+			msg = 'Confirmation'
+			msg2 = 'Please confirm rename file!'
+			if not self.confirm(msg, msg2, src): return False
+		xbmcvfs.rename(src, dest)
+		
 	def cp(self, src, dest):
 		pass
 
