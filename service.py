@@ -44,7 +44,6 @@ DB=SQLiteDatabase(DB_FILE)
 class Transmogrifier():
 	def __init__(self, url, filename, id, file_id, video_type='tvshow'):
 		self.win = xbmcgui.Window(10000)
-		self.__abort_all = False
 		self.threads = NUMBER_THREADS
 		self.active_threads = 0
 		self.cached = 0
@@ -68,6 +67,21 @@ class Transmogrifier():
 		self.set_property('file_id', self.file_id)
 		self.set_property('percent', 0)
 	
+	def check_abort(self):
+		return self.get_property('abort_all')
+	
+	def abort_all(self):
+		ADDON.log("Aborting Transmogrification...", 1)
+		ADDON.log("Cleaning Cache...", 1)
+		vfs.rm(self.output_file, quiet=True)
+		for p in range(0, self.total_segments):
+			filename = '%s_%s.part' % (str(p).zfill(3), self.file_id)
+			temp_file = vfs.join(WORKING_DIRECTORY, filename)
+			if vfs.exists(temp_file):
+				vfs.rm(temp_file, quiet=True)
+		vfs.rm(self.output_file, quiet=True)	
+		ADDON.log("Waiting to Transmogrify...",1)
+		
 	def set_property(self, k, v):
 		k = "%s.%s" % (WINDOW_PREFIX, k)
 		self.win.setProperty(k, str(v))
@@ -78,7 +92,9 @@ class Transmogrifier():
 		if p == 'false': return False
 		if p == 'true': return True
 		return p
+	
 	def transmogrify(self, p):
+		if self.check_abort(): return p
 		start = p * SEGMENT_SIZE
 		if p == self.total_segments - 1:
 			end = self.total_bytes
@@ -89,19 +105,20 @@ class Transmogrifier():
 		file_path = vfs.join(WORKING_DIRECTORY, filename)
 		ADDON.log("Requesting Segment %s/%s: %s" % ((p+1),self.total_segments,r))
 		while True:
+			if self.check_abort(): return p
 			try:
 				req = urllib2.Request(self.url, headers={"Range" : r})
 				f = urllib2.urlopen(req)
 				break
 			except urllib2.URLError, e:
-				if self.__abort_all==True:
-					return p
+				if self.check_abort(): return p
 				xbmc.sleep(2000)
 				pass
 		self.active_threads = self.active_threads + 1
 		self.set_property("active_threads", self.active_threads)
 		fp = vfs.open(file_path, 'w')
 		while True:
+			if self.check_abort(): return p
 			try:
 				buff = f.read(CHUNK_SIZE)
 				if not buff: break
@@ -134,14 +151,17 @@ class Transmogrifier():
 	def assemble(self):
 		ADDON.log("Waiting to assemble segments...", 1)
 		if self.video_type=='tvshow':
-			output_file = vfs.join(TVSHOW_DIRECTORY, vfs.clean_file_name(self.filename) + ".avi.temp")
+			self.output_file = vfs.join(TVSHOW_DIRECTORY, vfs.clean_file_name(self.filename) + ".avi.temp")
 			final_file = vfs.join(TVSHOW_DIRECTORY, vfs.clean_file_name(self.filename) + ".avi")
 		else:
-			output_file = vfs.join(MOVIE_DIRECTORY, vfs.clean_file_name(self.filename) + ".avi.temp")
+			self.output_file = vfs.join(MOVIE_DIRECTORY, vfs.clean_file_name(self.filename) + ".avi.temp")
 			final_file = vfs.join(MOVIE_DIRECTORY, vfs.clean_file_name(self.filename) + ".avi")
-		stream = vfs.open(output_file, 'w')
+		stream = vfs.open(self.output_file, 'w')
 		p=0
 		while(p < self.total_segments):
+			if self.check_abort(): 
+				self.abort_all()
+				return p
 			if p in self.completed:
 				infile = '%s_%s.part' % (str(p).zfill(3), self.file_id)
 				infile = vfs.join(WORKING_DIRECTORY, infile)
@@ -176,7 +196,6 @@ class Transmogrifier():
 				
 			assembler = Thread(target=self.assemble)
 			assembler.start()
-			
 			self.Pool.joinAll()
 		else:
 			ADDON.log('Invalid url, sorry!', 1)
@@ -198,7 +217,6 @@ class Transmogrifier():
 
 class Service():
 	def __init__(self):
-		self.__abort_all=False
 		self._url = False 
 
 	def poll_queue(self):
@@ -215,7 +233,6 @@ class Service():
 			DB.commit()
 			message = "Queued: %s" % name
 			ADDON.raise_notify(ADDON_NAME, message)
-			#url = 'http://fins/test.avi'
 			return name, url, id, file_id, video_type
 		else:
 			return False, False, False, False, False
@@ -230,7 +247,7 @@ class Service():
 		monitor = xbmc.Monitor()
 		ADDON.log("Waiting to Transmogrify...",1)
 		while True:
-			if monitor.waitForAbort(1) or self.__abort_all==True:
+			if monitor.waitForAbort(1):
 				break
 			
 			filename, url, id, file_id, video_type = self.poll_queue()

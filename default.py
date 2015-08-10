@@ -45,16 +45,20 @@ def view_queue():
 			super(self.__class__,self).__init__(title,width=1000, height=650, columns=4, rows=18)
 			self.draw()
 		
+		def confirm(self, msg='', msg2='', msg3=''):
+			dialog = xbmcgui.Dialog()
+			return dialog.yesno(msg, msg2, msg3)
+		
 		def show_menu(self):
-			index = self.get_object('queue').getSelectedPosition()
-			name = self.get_object('queue').getListItem(index).getProperty('original_label')
+			self._index = self.get_object('queue').getSelectedPosition()
+			name = self.get_object('queue').getListItem(self._index).getProperty('original_label')
 			
 			if name == '':
-				name = self.get_object('queue').getListItem(index).getLabel()
+				name = self.get_object('queue').getListItem(self._index).getLabel()
 			self.nameLabel.setLabel(name)
-			self.typeLabel.setLabel(self.__items[index][0])
+			self.typeLabel.setLabel(self.__items[self._index][0])
 			table = ["error", "pending", "caching", "complete"]
-			self.statusLabel.setLabel(table[self.__items[index][3]])		
+			self.statusLabel.setLabel(table[self.__items[self._index][3]])		
 			'''while True:
 				
 				self.set_progress(get_property("percent"))
@@ -76,14 +80,32 @@ def view_queue():
 			self.progressLabel.setLabel(s)
 		
 		def re_queue(self):
-			index = self.get_object('queue').getSelectedPosition()
-			id = self.__items[index][2]
+			id = self.__items[self._index][2]
+			name = self.__items[self._index][1]
+			if not self.confirm("Update queue", "Restart in queue?", name): return
 			DB.execute("UPDATE queue SET status=1 WHERE id=?", [id])
 			DB.commit()
 			self.close()
 			queue = QueueWindow('%s Version: %s' % (ADDON_NAME, VERSION))
 			queue.set_object_event("focus", "queue")
 			queue.show()	
+		
+		def delete(self):
+			id = self.__items[self._index][2]
+			name = self.__items[self._index][1]
+			if not self.confirm("Update queue", "Delete from queue?", name): return
+			DB.execute("DELETE FROM queue WHERE id=?", [id])
+			DB.commit()
+			self.close()
+			queue = QueueWindow('%s Version: %s' % (ADDON_NAME, VERSION))
+			queue.set_object_event("focus", "queue")
+			queue.show()	
+			
+		def abort(self):
+			id = self.__items[self._index][2]
+			name = self.__items[self._index][1]
+			if not self.confirm("Update queue", "Abort Transmogrification?", name): return
+			set_property('abort_all', 'true')
 		
 		def refresh(self):
 			items = []
@@ -150,6 +172,8 @@ def view_queue():
 			self.set_object_event("action", "queue", self.show_menu)
 			
 			self.set_object_event("action", "restart", self.re_queue)
+			self.set_object_event("action", "delete", self.delete)
+			self.set_object_event("action", "abort", self.abort)
 			
 			self.set_object_event("focus", "queue")
 			
