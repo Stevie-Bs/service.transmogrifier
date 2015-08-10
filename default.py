@@ -124,9 +124,8 @@ def view_queue():
 			self.add_object("close", 14, 0, rowspan=2)
 			self.set_object_event('action', 'close', self.close)
 			
-			self.create_button('progress', 'Progress')
-			self.add_object('progress', 14, 1, rowspan=2)
-			self.set_object_event('action', 'progress', self.pg)
+			self.create_button('delete', 'Delete')
+			self.add_object('delete', 14, 1, rowspan=2)
 			
 			self.create_button("abort", "Abort")
 			self.add_object("abort", 14, 2, rowspan=2)
@@ -134,10 +133,20 @@ def view_queue():
 			self.create_button("restart", "Restart")
 			self.add_object("restart", 14, 3, rowspan=2)
 			
-			self.set_object_event('left', 'close', 'progress')
-			self.set_object_event('left', 'progress', 'abort')
-			self.set_object_event('right', 'abort', 'progress')
-			self.set_object_event('right', 'progress', 'close')	
+			self.set_object_event('left', 'restart', 'abort')
+			self.set_object_event('left', 'abort', 'delete')
+			self.set_object_event('left', 'delete', 'close')
+			
+			self.set_object_event('right', 'close', 'delete')
+			self.set_object_event('right', 'delete', 'abort')
+			self.set_object_event('right', 'abort', 'restart')
+			
+			self.set_object_event('up', 'close', 'queue')
+			self.set_object_event('up', 'delete', 'queue')
+			self.set_object_event('up', 'restart', 'queue')
+			self.set_object_event('up', 'abort', 'queue')
+			self.set_object_event('down', 'queue', 'close')
+			
 			self.set_object_event("action", "queue", self.show_menu)
 			
 			self.set_object_event("action", "restart", self.re_queue)
