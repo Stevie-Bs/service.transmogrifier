@@ -5,9 +5,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 	<title>Service.Transmogrifier</title> 
 	<meta name="viewport" content="width=device-width, initial-scale=1"> 
-	<link rel="stylesheet" href="http://code.jquery.com/mobile/1.3.0-beta.1/jquery.mobile-1.3.0-beta.1.min.css" />
+	<link rel="stylesheet" href="http://code.jquery.com/mobile/1.3.1/jquery.mobile-1.3.1.min.css" />
 	<script src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
-	<script src="http://code.jquery.com/mobile/1.3.0-beta.1/jquery.mobile-1.3.0-beta.1.min.js"></script>
+	<script src="http://code.jquery.com/mobile/1.3.1/jquery.mobile-1.3.1.min.js"></script>
 	<script src="lib.js"></script>
 <style>
 .ui-page.ui-body-c {
@@ -71,6 +71,15 @@
 		<div data-role="content">
 		<ol data-role="listview" data-filter="true" data-filter-placeholder="Filter queue..." data-filter-theme="d" data-theme="d" data-divider-theme="d" id="queueList">
 		</div>
+	<div data-role="popup" id="queueContext" data-theme="d">
+		<ul data-role="listview" data-inset="true" style="min-width:210px;">
+			<li data-role="list-divider">Choose an action</li>
+			<li><a href="#">View details</a></li>
+			<li><a href="#">Edit</a></li>
+			<li><a href="#">Disable</a></li>
+			<li><a href="#">Delete</a></li>
+		</ul>
+	</div>
 	</div>
 	<div data-role="page" id="tvshows">
 		<div data-role="header">

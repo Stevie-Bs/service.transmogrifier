@@ -21,7 +21,7 @@ $(document).delegate('#queue', 'pageshow', function () {
 		html = ''
 		$.each(json, function(index){
 			row = json[index]
-			html += '<li class="queueListItem" value="'+row[0]+'">'+row[1]+' - '+row[2]+'</li>'		
+			html += '<li class="queueListItem" value="'+row[0]+'"><a href="#queueContext" data-rel="popup" data-transition="pop" data-position-to="origin">'+row[1]+' - '+row[2]+'</a></li>'		
 		});
 		$('#queueList').html(html);
 		$('#queueList').listview("refresh");	

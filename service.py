@@ -28,7 +28,7 @@ vfs = VFSClass()
 DISABLED = False
 
 SEGMENT_SIZE = int(float(ADDON.get_setting('segment_size')) * 1000 * 1000)
-CHUNK_SIZE = int(float(ADDON.get_setting('chunk_size')) * 1.024)
+CHUNK_SIZE = int(ADDON.get_setting('chunk_size'))
 NUMBER_THREADS = int(ADDON.get_setting('thread_number'))
 CACHE_DIRECTORY = ADDON.get_setting('save_directory')
 MOVIE_DIRECTORY = vfs.join(CACHE_DIRECTORY, 'Movies')
@@ -36,7 +36,7 @@ TVSHOW_DIRECTORY = vfs.join(CACHE_DIRECTORY, 'TV Shows')
 WORKING_DIRECTORY = ADDON.get_setting('work_directory')
 WINDOW_PREFIX = 'transmogrifier'
 WEB_ROOT = vfs.join(ROOT_PATH, 'resources/www/html')
-CONTROL_PORT = 8750
+CONTROL_PORT = int(ADDON.get_setting('control_port'))
 
 
 ADDON.log({"segment_size": SEGMENT_SIZE, "chunk_size": CHUNK_SIZE, "thread_number": NUMBER_THREADS})
@@ -314,7 +314,7 @@ class Service():
 		self._url = False 
 
 	def poll_queue(self):
-		if DISABLED==True: return False, False, False, False, False
+		if ADDON.get_setting('enable_transmogrifier')=='false': return False, False, False, False, False
 		SQL = "SELECT filename, url, id, video_type FROM queue WHERE status=1 ORDER BY priority, id DESC LIMIT 1"
 		row = DB.query(SQL)
 		if row:
@@ -352,11 +352,12 @@ class Service():
 				TM.start()
 				DB.execute("UPDATE queue SET status=3 WHERE id=?", [self.id])
 				DB.commit()
-			
-			ADDON.log("Launching WebInterface on port: " + str(CONTROL_PORT))
-			server = HTTPServer(('', CONTROL_PORT), RequestHandler)
-			server.serve_forever()
-		server.socket.close()
+			if ADDON.get_setting('enable_webserver')=='true':
+				ADDON.log("Launching WebInterface on port: " + str(CONTROL_PORT))
+				server = HTTPServer(('', CONTROL_PORT), RequestHandler)
+				server.serve_forever()
+		if ADDON.get_setting('enable_webserver')=='true':
+			server.socket.close()
 		ADDON.log("Service stopping...", 1)
 
 if __name__ == '__main__':
