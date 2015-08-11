@@ -4,6 +4,11 @@
 import sys
 import os
 import math
+import string
+import cgi
+from os import curdir, sep
+from urlparse import urlparse
+from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 import xbmc,xbmcvfs,xbmcgui
 import urllib2
 import shutil
@@ -14,8 +19,12 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resour
 from threadpool import *
 from common import *
 from vfs import VFSClass
+try: 
+	import simplejson as json
+                                                                                                                                                                                                                                                        
+except ImportError: 
+	import json
 vfs = VFSClass()
-
 DISABLED = False
 
 SEGMENT_SIZE = int(float(ADDON.get_setting('segment_size')) * 1000 * 1000)
@@ -26,6 +35,9 @@ MOVIE_DIRECTORY = vfs.join(CACHE_DIRECTORY, 'Movies')
 TVSHOW_DIRECTORY = vfs.join(CACHE_DIRECTORY, 'TV Shows')
 WORKING_DIRECTORY = ADDON.get_setting('work_directory')
 WINDOW_PREFIX = 'transmogrifier'
+WEB_ROOT = vfs.join(ROOT_PATH, 'resources/www/html')
+CONTROL_PORT = 8750
+
 
 ADDON.log({"segment_size": SEGMENT_SIZE, "chunk_size": CHUNK_SIZE, "thread_number": NUMBER_THREADS})
 ADDON.log("Work Directory: %s" % WORKING_DIRECTORY)
@@ -41,6 +53,88 @@ if not vfs.exists(DATA_PATH):
 DB_FILE = vfs.join(DATA_PATH, 'cache.db', ADDON.get_setting('log_level')==0)
 DB=SQLiteDatabase(DB_FILE)
 
+class RequestHandler(BaseHTTPRequestHandler):
+	def do_GET(self):
+		parts = urlparse(self.path)
+		try:
+			path = parts.path
+			query = parts.query
+			data = cgi.parse_qs(query, keep_blank_values=True)
+			if path == '/query/':
+				if data['method'][0] == 'getLogContent':
+					logfile = vfs.join('special://temp', 'kodi.log')
+					f = open(logfile)
+					contents = f.read()
+					f.close()
+					contents = re.sub('<host>(.+?)</host>', '<pass>******</pass>', contents)
+					contents = re.sub('<name>(.+?)</name>', '<name>******</name>', contents)
+					contents = re.sub('<user>(.+?)</user>', '<user>******</user>', contents)
+					contents = re.sub('<pass>(.+?)</pass>', '<pass>******</pass>', contents)
+					self.do_Response(contents, 'text/plain')
+				if data['method'][0] == 'getQueue':
+					rows = DB.query("SELECT id, video_type, filename, uuid, status, raw_url from queue", force_double_array=True)
+					self.do_Response(json.dumps(rows))
+				else:
+					self.do_Response("{'status': 200, 'message': 'success'}")
+				return True
+			else:
+				if self.path=='/':
+					self.path='/index.html'
+				
+				fileName, fileExtension = os.path.splitext(self.path)
+				headers = {
+						'.css': 	'text/css',
+						'.js':		'application/javascript',
+						'.ico':		'image/x-icon',
+						'.jpg':		'image/jpeg',
+						'.png':		'image/png',
+						'.gif':		'image/gif',
+						'.html':	'text/html',
+						'.txt':		'text/plain',
+				}
+				if fileExtension not in headers.keys():
+					self.send_error(403,'Forbidden')
+					return False
+				
+				full_path = WEB_ROOT + os.sep +  self.path
+				
+				if not vfs.exists(full_path):
+					self.send_error(404,'File Not Found: %s' % self.path)
+					return False
+				self.send_response(200)
+				self.send_header('Content-type',	headers[fileExtension])
+				f = open(full_path) 
+				
+				self.end_headers()
+				self.wfile.write(f.read())
+				f.close()
+				return True
+			return True
+		except IOError:
+			self.send_error(500,'Internal Server Error')
+			return False
+	def do_POST(self):
+		try:
+			ctype, pdict = cgi.parse_header(self.headers.getheader('content-type'))
+			if ctype == 'multipart/form-data':
+				query=cgi.parse_multipart(self.rfile, pdict)
+				print query
+			self.send_response(301)
+
+			self.end_headers()
+			upfilecontent = query.get('upfile')
+			print "filecontent", upfilecontent[0]
+			self.wfile.write("<HTML>POST OK.<BR><BR>");
+			self.wfile.write(upfilecontent[0]);
+		except:
+			self.send_error(500,'Internal Server Error')
+			
+	def do_Response(self, content, content_type='application/json', response=200):
+		self.send_response(response)
+		self.send_header('Content-type',	content_type)
+		self.end_headers()
+		self.wfile.write(content)
+		
 class Transmogrifier():
 	def __init__(self, url, filename, id, file_id, video_type='tvshow'):
 		self.win = xbmcgui.Window(10000)
@@ -249,7 +343,6 @@ class Service():
 		while True:
 			if monitor.waitForAbort(1):
 				break
-			
 			filename, url, id, file_id, video_type = self.poll_queue()
 			if id:
 				ADDON.log("Starting to Transmogrify: %s" % filename,1)
@@ -260,6 +353,10 @@ class Service():
 				DB.execute("UPDATE queue SET status=3 WHERE id=?", [self.id])
 				DB.commit()
 			
+			ADDON.log("Launching WebInterface on port: " + str(CONTROL_PORT))
+			server = HTTPServer(('', CONTROL_PORT), RequestHandler)
+			server.serve_forever()
+		server.socket.close()
 		ADDON.log("Service stopping...", 1)
 
 if __name__ == '__main__':
