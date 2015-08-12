@@ -105,6 +105,8 @@ def view_queue():
 			id = self.__items[self._index][2]
 			name = self.__items[self._index][1]
 			if not self.confirm("Update queue", "Abort Transmogrification?", name): return
+			DB.execute("UPDATE queue SET status=0 WHERE id=?", [id])
+			DB.commit()
 			set_property('abort_all', 'true')
 		
 		def refresh(self):

@@ -33,7 +33,19 @@
 	margin-left: 15px;
 	margin-right: 15px;
 }	
-
+.queueprogress {
+	background: blue;
+	height: 3px;
+	width: 0%;
+}
+#notes{
+	position:fixed;
+   left:0px;
+   bottom:0px;
+   height:100px;
+   width:100%;
+   background:yellow;
+}
 </style>
 </head> 
 <body> 
@@ -74,10 +86,9 @@
 	<div data-role="popup" id="queueContext" data-theme="d">
 		<ul data-role="listview" data-inset="true" style="min-width:210px;">
 			<li data-role="list-divider">Choose an action</li>
-			<li><a href="#">View details</a></li>
-			<li><a href="#">Edit</a></li>
-			<li><a href="#">Disable</a></li>
-			<li><a href="#">Delete</a></li>
+			<li id="queueRestart"><a href="#" id="">Restart</a></li>
+			<li id="queueAbort"><a href="#">Abort</a></li>
+			<li id="queueDelete"><a href="#">Delete</a></li>
 		</ul>
 	</div>
 	</div>
@@ -96,6 +107,7 @@
 			</div>
 		</div>
 		<div data-role="content">
+		<ol data-role="listview" data-filter="true" data-filter-placeholder="Filter shows..." data-filter-theme="d" data-theme="d" data-divider-theme="d" id="tvshowList">
 		</div>
 	</div>
 	<div data-role="page" id="movies">
@@ -113,6 +125,7 @@
 			</div>	
 		</div>
 		<div data-role="content">
+		<ol data-role="listview" data-filter="true" data-filter-placeholder="Filter shows..." data-filter-theme="d" data-theme="d" data-divider-theme="d" id="movieList">
 		</div>
 	</div>
 	<div data-role="page" id="log">
@@ -142,5 +155,6 @@
 
 	</div>
 </div>
+<div id="notes">ddd</div>
 </body>
 </html>

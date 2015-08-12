@@ -21,7 +21,6 @@ from common import *
 from vfs import VFSClass
 try: 
 	import simplejson as json
-                                                                                                                                                                                                                                                        
 except ImportError: 
 	import json
 vfs = VFSClass()
@@ -53,6 +52,17 @@ if not vfs.exists(DATA_PATH):
 DB_FILE = vfs.join(DATA_PATH, 'cache.db', ADDON.get_setting('log_level')==0)
 DB=SQLiteDatabase(DB_FILE)
 
+def set_property(k, v):
+	k = "%s.%s" % (WINDOW_PREFIX, k)
+	xbmcgui.Window(10000).setProperty(k, str(v))
+	
+def get_property(k):
+	k = "%s.%s" % (WINDOW_PREFIX, k)
+	p = xbmcgui.Window(10000).getProperty(k)
+	if p == 'false': return False
+	if p == 'true': return True
+	return p
+
 class RequestHandler(BaseHTTPRequestHandler):
 	def do_GET(self):
 		parts = urlparse(self.path)
@@ -71,9 +81,43 @@ class RequestHandler(BaseHTTPRequestHandler):
 					contents = re.sub('<user>(.+?)</user>', '<user>******</user>', contents)
 					contents = re.sub('<pass>(.+?)</pass>', '<pass>******</pass>', contents)
 					self.do_Response(contents, 'text/plain')
-				if data['method'][0] == 'getQueue':
-					rows = DB.query("SELECT id, video_type, filename, uuid, status, raw_url from queue", force_double_array=True)
+				elif data['method'][0] == 'getProgress':
+					response = {
+							"id": get_property('id'), 
+							"cached_bytes": get_property('cached'),
+							"total_bytes": get_property('total_bytes'),
+							"percent": get_property('percent'),
+					}
+					self.do_Response(json.dumps(response))
+				elif data['method'][0] == 'deleteQueue':
+					DB=SQLiteDatabase(DB_FILE)
+					DB.execute("DELETE FROM queue WHERE id=?", [data['id'][0]])
+					DB.commit()
+					self.do_Response("{'status': 200, 'message': 'success'}")
+				elif data['method'][0] == 'restartQueue':
+					DB=SQLiteDatabase(DB_FILE)
+					DB.execute("UPDATE queue SET status=1 WHERE id=?", [data['id'][0]])
+					DB.commit()
+					self.do_Response("{'status': 200, 'message': 'success'}")
+				elif data['method'][0] == 'abortQueue':
+					set_property("abort_all", "true")
+					self.do_Response("{'status': 200, 'message': 'success'}")						
+				elif data['method'][0] == 'getQueue':
+					DB=SQLiteDatabase(DB_FILE)
+					rows = DB.query("SELECT id, video_type, filename, status, raw_url FROM queue ORDER BY id ASC", force_double_array=True)
 					self.do_Response(json.dumps(rows))
+				elif data['method'][0] == 'getTVShows':
+					shows = vfs.ls(TVSHOW_DIRECTORY)
+					results = []
+					for show in shows[1]:
+						results.append(show)
+					self.do_Response(json.dumps(results))
+				elif data['method'][0] == 'getMovies':
+					movies = vfs.ls(MOVIE_DIRECTORY)
+					results = []
+					for movie in movies[1]:
+						results.append(movie)
+					self.do_Response(json.dumps(results))
 				else:
 					self.do_Response("{'status': 200, 'message': 'success'}")
 				return True
@@ -150,6 +194,7 @@ class Transmogrifier():
 		self.Pool = ThreadPool(NUMBER_THREADS)
 		self.completed = []
 		self.compiled = []
+		self.total_bytes = 0
 		
 		self.set_property('abort_all', "false")
 		self.set_property('threads', self.threads)
@@ -173,7 +218,11 @@ class Transmogrifier():
 			temp_file = vfs.join(WORKING_DIRECTORY, filename)
 			if vfs.exists(temp_file):
 				vfs.rm(temp_file, quiet=True)
-		vfs.rm(self.output_file, quiet=True)	
+		vfs.rm(self.output_file, quiet=True)
+		self.set_property('percent', 0)
+		self.set_property('cached', 0)
+		self.set_property('total_bytes', 'False')
+		self.set_property('id', '')
 		ADDON.log("Waiting to Transmogrify...",1)
 		
 	def set_property(self, k, v):
@@ -226,7 +275,9 @@ class Transmogrifier():
 				ADDON.log("Requeue Segment %s" % p)
 				p = p * -1
 				return p
-		percent = int(100 * self.cached / self.total_bytes)
+			percent = int(100 * self.cached / self.total_bytes)
+			self.set_property("percent", percent)
+		#percent = int(100 * self.cached / self.total_bytes)
 		ADDON.log("Progress: %s%s %s/%s %s KBs" % (percent, '%', self.cached, self.total_bytes, kbs))
 		return p
 		
@@ -267,8 +318,8 @@ class Transmogrifier():
 			xbmc.sleep(50)
 		stream.close()
 		delta, kbs = self.calculate_progress()
-
-		vfs.rename(output_file, final_file, quiet=True)
+		self.set_property("percent", 100)
+		vfs.rename(self.output_file, final_file, quiet=True)
 		message = 'Completed %s in %s second(s) at %s KB/s.' % (self.filename, delta, kbs)
 		ADDON.log(message, 1)
 		ADDON.raise_notify(ADDON_NAME, message)
@@ -314,8 +365,8 @@ class Service():
 		self._url = False 
 
 	def poll_queue(self):
-		if ADDON.get_setting('enable_transmogrifier')=='false': return False, False, False, False, False
-		SQL = "SELECT filename, url, id, video_type FROM queue WHERE status=1 ORDER BY priority, id DESC LIMIT 1"
+		#if ADDON.get_setting('enable_transmogrifier')=='false': return False, False, False, False, False
+		SQL = "SELECT filename, url, id, video_type FROM queue WHERE status=1 ORDER BY priority, id ASC LIMIT 1"
 		row = DB.query(SQL)
 		if row:
 			file_id = str(uuid.uuid4())
@@ -340,9 +391,16 @@ class Service():
 		ADDON.log("Service starting...", 1)
 		monitor = xbmc.Monitor()
 		ADDON.log("Waiting to Transmogrify...",1)
+		if ADDON.get_setting('enable_webserver')=='true':
+			ADDON.log("Launching WebInterface on port: " + str(CONTROL_PORT))
+			server = HTTPServer(('', CONTROL_PORT), RequestHandler)
+			webserver = Thread(target=server.serve_forever)
+			webserver.start()
+			
 		while True:
 			if monitor.waitForAbort(1):
 				break
+
 			filename, url, id, file_id, video_type = self.poll_queue()
 			if id:
 				ADDON.log("Starting to Transmogrify: %s" % filename,1)
@@ -350,16 +408,16 @@ class Service():
 				started = time.time()
 				TM = Transmogrifier(url, filename, id, file_id, video_type=video_type)
 				TM.start()
-				DB.execute("UPDATE queue SET status=3 WHERE id=?", [self.id])
+				if get_property("abort_all")=="true":
+					DB.execute("UPDATE queue SET status=0 WHERE id=?", [self.id])
+				else:
+					DB.execute("UPDATE queue SET status=3 WHERE id=?", [self.id])
 				DB.commit()
-			if ADDON.get_setting('enable_webserver')=='true':
-				ADDON.log("Launching WebInterface on port: " + str(CONTROL_PORT))
-				server = HTTPServer(('', CONTROL_PORT), RequestHandler)
-				server.serve_forever()
+
 		if ADDON.get_setting('enable_webserver')=='true':
 			server.socket.close()
 		ADDON.log("Service stopping...", 1)
 
 if __name__ == '__main__':
 	TS = Service()
-	TS.start()
+	TS.run()
