@@ -118,6 +118,27 @@ class RequestHandler(BaseHTTPRequestHandler):
 					for movie in movies[1]:
 						results.append(movie)
 					self.do_Response(json.dumps(results))
+				elif data['method'][0] == 'downloadFile':
+					if data['media'][0] == 'movie':
+						path = vfs.join(MOVIE_DIRECTORY, data['file'][0])
+					else:
+						path = vfs.join(TVSHOW_DIRECTORY, data['file'][0])
+					if not vfs.exists(path):
+						self.send_error(404,'File Not Found: %s' % self.path)
+						return False
+					f = open(path, "r")
+					
+					self.send_response(200)
+					self.send_header("Pragma", "public")
+					self.send_header("Expires", "0")
+					self.send_header("Cache-Control", "must-revalidate, post-check=0, pre-check=0")
+					self.send_header("Content-Type", "application/force-download")
+					self.send_header("Content-Type", "application/octet-stream")
+					self.send_header("Content-Type", "application/download")
+					self.send_header("Content-Disposition", 'attachment; filename="%s"' % data['file'][0]);
+					self.end_headers()
+					self.wfile.write(f.read())
+					f.close()
 				else:
 					self.do_Response("{'status': 200, 'message': 'success'}")
 				return True
@@ -365,7 +386,7 @@ class Service():
 		self._url = False 
 
 	def poll_queue(self):
-		#if ADDON.get_setting('enable_transmogrifier')=='false': return False, False, False, False, False
+		if ADDON.get_setting('enable_transmogrifier')=='false': return False, False, False, False, False
 		SQL = "SELECT filename, url, id, video_type FROM queue WHERE status=1 ORDER BY priority, id ASC LIMIT 1"
 		row = DB.query(SQL)
 		if row:
@@ -383,11 +404,6 @@ class Service():
 			return False, False, False, False, False
 		
 	def start(self):
-
-		self.run()
-	
-	def run(self):
-
 		ADDON.log("Service starting...", 1)
 		monitor = xbmc.Monitor()
 		ADDON.log("Waiting to Transmogrify...",1)
@@ -420,4 +436,4 @@ class Service():
 
 if __name__ == '__main__':
 	TS = Service()
-	TS.run()
+	TS.start()

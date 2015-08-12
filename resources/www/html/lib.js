@@ -18,20 +18,35 @@ $(document).ready(function() {
 		$.getJSON('/query/?method=deleteQueue&id=' + __id__);
 		$( "#queueContext" ).popup( "close" );
 	});
+
+	$("#downloadTVFile").live("click", function(event, ui) {
+		url = "/query/?method=downloadFile&media=tvshow&file=" + __file__
+		window.location.href=url
+	});
 });
 
 function notify(text) {
 	$("#notes").html(text);
 }
-
-
+$(document).delegate('#home', 'pageshow', function () {
+	__queue_poll__ = false;
+});
+__file__ = ''
 $(document).delegate('#tvshows', 'pageshow', function () {
+	__queue_poll__ = false;
+	$(".tvshowListItem").live("click", function(event, ui) {
+		//url = "/query/?method=downloadFile&media=tvshow&file=" + encodeURIComponent(this.value)
+		//window.location.href=url
+		__file__ = this.value
+	});
 	$.getJSON('/query/?method=getTVShows', function(json) {
 		html = ''
 		$.each(json, function(index){
 			row = json[index]
-			el = '<li class="tvshowListItem" value="' + row + '">' + row
-			el += '</li>'
+			el = '<li class="tvshowListItem" value="' + encodeURIComponent(row) + '">'
+			el += '<a href="#downloadTVFile">'
+			el += row
+			el += '</a></li>'
 			html += el
 			
 		});
@@ -42,6 +57,7 @@ $(document).delegate('#tvshows', 'pageshow', function () {
 
 
 $(document).delegate('#movies', 'pageshow', function () {
+	__queue_poll__ = false;
 	$.getJSON('/query/?method=getMovies', function(json) {
 		html = ''
 		$.each(json, function(index){
@@ -59,6 +75,7 @@ $(document).delegate('#movies', 'pageshow', function () {
 var __queue_poll__ = false;
 var __id__ = false;
 $(document).delegate('#queue', 'pageshow', function () {
+	__queue_poll__ = true;
 	$(".queueListItem").live("click", function(event, ui) {
 		__id__ = this.value
 	});
@@ -85,7 +102,6 @@ $(document).delegate('#queue', 'pageshow', function () {
 			}
 		});	
 	});
-	__queue_poll__ = true;
 	var poll_queue = function() {
 		setTimeout(function() {
 			if (__queue_poll__==true) {
@@ -103,12 +119,8 @@ $(document).delegate('#queue', 'pageshow', function () {
 	poll_queue();
 });
 
-$(document).delegate('#queue', 'pageremove', function () {
-	//$('#queue_progress_2').css("width", "0");
-	__queue_poll__ = false;
-});
-
 $(document).delegate('#log', 'pageshow', function () {
+	__queue_poll__ = false;
 	$.ajax({
 	        type: "GET",
 	        url: "/query/?method=getLogContent",
