@@ -16,9 +16,9 @@ import uuid
 from threading import Thread
 import time
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', 'lib'))
-from threadpool import *
-from common import *
-from vfs import VFSClass
+from dudehere.routines import *
+from dudehere.routines.vfs import VFSClass
+from dudehere.routines.threadpool import ThreadPool
 try: 
 	import simplejson as json
 except ImportError: 
@@ -48,11 +48,17 @@ if not vfs.exists(CACHE_DIRECTORY): vfs.mkdir(CACHE_DIRECTORY)
 if not vfs.exists(MOVIE_DIRECTORY): vfs.mkdir(MOVIE_DIRECTORY)
 if not vfs.exists(TVSHOW_DIRECTORY): vfs.mkdir(TVSHOW_DIRECTORY)
 	
-from database import *
+from dudehere.routines.database import SQLiteDatabase as DatabaseAPI
+class MyDatabaseAPI(DatabaseAPI):
+	def _initialize(self):
+		self.execute('CREATE TABLE IF NOT EXISTS "queue" ("id" INTEGER PRIMARY KEY AUTOINCREMENT, "priority" INTEGER DEFAULT (10), "video_type" TEXT, "filename" TEXT, "uuid" TEXT, "raw_url" TEXT, "url" TEXT, "status" INTEGER DEFAULT (1))')
+		self.commit()
+		ADDON.addon.setSetting('database_init', 'true')
+	
 if not vfs.exists(DATA_PATH):
 	vfs.mkdir(DATA_PATH)
 DB_FILE = vfs.join(DATA_PATH, 'cache.db', ADDON.get_setting('log_level')==0)
-DB=SQLiteDatabase(DB_FILE)
+DB=MyDatabaseAPI(DB_FILE)
 
 def set_property(k, v):
 	k = "%s.%s" % (WINDOW_PREFIX, k)
@@ -92,12 +98,12 @@ class RequestHandler(BaseHTTPRequestHandler):
 					}
 					self.do_Response(json.dumps(response))
 				elif data['method'][0] == 'deleteQueue':
-					DB=SQLiteDatabase(DB_FILE)
+					DB=MyDatabaseAPI(DB_FILE)
 					DB.execute("DELETE FROM queue WHERE id=?", [data['id'][0]])
 					DB.commit()
 					self.do_Response()
 				elif data['method'][0] == 'restartQueue':
-					DB=SQLiteDatabase(DB_FILE)
+					DB=MyDatabaseAPI(DB_FILE)
 					DB.execute("UPDATE queue SET status=1 WHERE id=?", [data['id'][0]])
 					DB.commit()
 					self.do_Response()
@@ -105,7 +111,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 					set_property("abort_all", "true")
 					self.do_Response()						
 				elif data['method'][0] == 'getQueue':
-					DB=SQLiteDatabase(DB_FILE)
+					DB=MyDatabaseAPI(DB_FILE)
 					rows = DB.query("SELECT id, video_type, filename, status, raw_url FROM queue ORDER BY id ASC", force_double_array=True)
 					self.do_Response(rows)
 				elif data['method'][0] == 'getTVShows':
@@ -199,7 +205,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 					inserts =[]
 					for video in data['videos']:
 						inserts.append((video['type'], video['filename'], video['raw_url'], video['url']))
-					DB=SQLiteDatabase(DB_FILE)
+					DB=MyDatabaseAPI(DB_FILE)
 					DB.execute_many(SQL, inserts)
 					DB.commit()
 					DB.disconnect()
@@ -209,7 +215,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 			elif data['method'] == 'restart':
 				try:
 					count = len(data['videos'])
-					DB=SQLiteDatabase(DB_FILE)
+					DB=MyDatabaseAPI(DB_FILE)
 					SQL = "UPDATE queue SET status=1 WHERE id=?"
 					for video in data['videos']:
 						DB.execute(SQL, [video['id']])
@@ -221,7 +227,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 			elif data['method'] == 'delete':
 				try:
 					count = len(data['videos'])
-					DB=SQLiteDatabase(DB_FILE)
+					DB=MyDatabaseAPI(DB_FILE)
 					SQL = "DELETE FROM queue WHERE id=?"
 					for video in data['videos']:
 						DB.execute(SQL, [video['id']])
@@ -241,14 +247,28 @@ class RequestHandler(BaseHTTPRequestHandler):
 					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'progress': progress})
 				except:
 						self.send_error(500,'Internal Server Error')		
-			elif data['method'] == 'search':		
+			elif data['method'] == 'queue':
 					try:
-						from trakt_api import TraktAPI
-						trakt = TraktAPI()
-						results = trakt.search(data['query'], data['type'])
-						self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], "results": results})
+						DB=MyDatabaseAPI(DB_FILE)
+						rows = DB.query("SELECT id, video_type, filename, status, raw_url FROM queue ORDER BY id ASC", force_double_array=True)
+						DB.disconnect()
+						self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'queue': rows})
 					except:
 						self.send_error(500,'Internal Server Error')
+			elif data['method'] == 'tvshows':
+				try:
+					videos = vfs.ls(TVSHOW_DIRECTORY, pattern="avi$")[1]
+					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'tvshows': videos})
+				except:
+						self.send_error(500,'Internal Server Error')
+			elif data['method'] == 'search':
+				try:
+					from trakt_api import TraktAPI
+					trakt = TraktAPI()
+					results = trakt.search(data['query'], data['type'])
+					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], "results": results})
+				except:
+					self.send_error(500,'Internal Server Error')
 			elif data['method'] == 'abort':
 				try:
 					set_property("abort_all", "true")

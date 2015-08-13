@@ -1,6 +1,12 @@
+var auth_key = '0c9d3e4b3b76e5793f7ca4fdc5725c08'
+var auth_pin = ''
+var base_url = '/api.json'
 $(document).ready(function() {
 	var __queue_poll__ = false;
-
+	$("#LoginButton").live("click", function(event, ui) {
+		$( "#popupLogin" ).popup( "close" );
+		auth_pin=$("#auth_pin").val()
+	});
 	$("#queueRestart").live("click", function(event, ui) {
 		$('#queue_progress_' + __id__).css("width", "0%")
 		$('#queue_progress_' + __id__).css("background", 'green');
@@ -23,6 +29,12 @@ $(document).ready(function() {
 		url = "/query/?method=downloadFile&media=tvshow&file=" + __file__
 		window.location.href=url
 	});
+
+	var http_call = function(method) {
+		base_url = '/api.json'
+		request = request = {"method": method, "auth_key": auth_key, "pin": auth_pin}
+		notify('b')	
+	}
 });
 
 function notify(text) {
@@ -39,10 +51,11 @@ $(document).delegate('#tvshows', 'pageshow', function () {
 		//window.location.href=url
 		__file__ = this.value
 	});
-	$.getJSON('/query/?method=getTVShows', function(json) {
+	data = JSON.stringify({"method": "tvshows", "auth_key": auth_key, "pin": auth_pin})
+	$.post(base_url, data, function(json) {
 		html = ''
-		$.each(json, function(index){
-			row = json[index]
+		$.each(json['tvshows'], function(index){
+			row = json['tvshows'][index]
 			el = '<li class="tvshowListItem" value="' + encodeURIComponent(row) + '">'
 			el += '<a href="#downloadTVFile">'
 			el += row
@@ -79,17 +92,17 @@ $(document).delegate('#queue', 'pageshow', function () {
 	$(".queueListItem").live("click", function(event, ui) {
 		__id__ = this.value
 	});
-
-	$.getJSON('/query/?method=getQueue', function(json) {
+	data = JSON.stringify({"method": "queue", "auth_key": auth_key, "pin": auth_pin})
+	$.post(base_url, data, function(json) {
 		html = ''
-		$.each(json, function(index){
-			row = json[index]
+		$.each(json['queue'], function(index){
+			row = json['queue'][index]
 			html += '<li class="queueListItem" value="'+row[0]+'"><a href="#queueContext" data-rel="popup" data-transition="pop" data-position-to="origin">'+row[1]+' - '+row[2]+'</a><div class="queueprogress" id="queue_progress_'+row[0]+'"></div></li>'
 		});
 		$('#queueList').html(html);
 		$('#queueList').listview("refresh");
-		$.each(json, function(index){
-			row = json[index]
+		$.each(json['queue'], function(index){
+			row = json['queue'][index]
 			if (row[3] == 3) {
 				$('#queue_progress_' + row[0]).css("width", "100%")
 				$('#queue_progress_' + row[0]).css("background", 'blue');			
@@ -100,15 +113,17 @@ $(document).delegate('#queue', 'pageshow', function () {
 				$('#queue_progress_' + row[0]).css("width", "0%")
 				$('#queue_progress_' + row[0]).css("background", 'green');
 			}
-		});	
+		});
 	});
+
 	var poll_queue = function() {
 		setTimeout(function() {
 			if (__queue_poll__==true) {
-				$.getJSON( "/query/?method=getProgress", function( data ) {
-					$('#queue_progress_' + data.id).css("width", data.percent +"%");
+				data = JSON.stringify({"method": "progress", "auth_key": auth_key, "pin": auth_pin})
+				$.post(base_url, data, function(json) {
+					$('#queue_progress_' + json['progress']['id']).css("width", json['progress']['percent'] +"%");
 					if (data.percent == 100) {
-						$('#queue_progress_' + data.id).css("background", 'blue');
+						$('#queue_progress_' + json['progress']['id']).css("background", 'blue');
 					}
 				});
 			}

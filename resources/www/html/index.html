@@ -66,8 +66,18 @@
 					<li><a href="#log">Kodi.log</a></li>
 				</ul>
 			</div>
+			<a href="#popupLogin" id="setPinButton" data-theme="d" data-icon="star" data-iconpos="notext" data-rel="popup" data-transition="pop">Login Pin</a>
 		</div>
 		<div data-role="content">	
+		</div>
+
+		<div data-role="popup" id="popupLogin" data-theme="a" class="ui-corner-all">
+		<div style="padding:10px 20px;">
+		  <h3>Please set pin</h3>
+		  <label for="un" class="ui-hidden-accessible">Login Pin:</label>
+		  <input type="password" name="auth_pin" id="auth_pin" value="" placeholder="pin" data-theme="a" />
+	    	  <button id="LoginButton" data-theme="b">Set Login Pin</button>
+		</div>
 		</div>
 	</div>
 
