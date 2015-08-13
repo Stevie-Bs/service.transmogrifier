@@ -132,3 +132,42 @@ $(document).delegate('#log', 'pageshow', function () {
 	
 
 });
+
+$(document).delegate('#addTVShow', 'pageshow', function () {
+	$("#addTVShowSearchField").live("keyup", function(event, ui) {
+		var text = $(this).val();
+		if(text.length > 3)	{
+			var url = '/query/?method=search&type=tvshows&s=' + encodeURIComponent(text);
+			$.getJSON(url , function(json) {
+				html = ''
+				$.each(json, function(index){
+					row = json[index]
+					html += '<li><input type="checkbox"  value="'+row[1]+'" class="tvshowAddItem"/>'+row[0]+'</li>';
+				}); 
+				$('#addTVShowSearchResults').html(html);
+				$('#addTVShowSearchResults').listview("refresh");
+				$("#addTVShowSearchResults").show('fast');	
+			});
+					
+		} else {
+			$("#addTVShowSearchResults").hide('fast');		
+		}
+		
+	});
+
+	/*$(".subscriptionItem").live("change", function(event, ui) {
+		
+		value = $(this).val();
+		data = {"showid" : value};		
+		$.ajax({
+		        type: "POST",
+		        url: "/query/?method=toggleShowSubscription",
+		        cache: false,
+		        data: data,
+		        success: function(response) {
+				notify(response);
+			}
+		});	
+	});*/
+	
+});

@@ -25,6 +25,8 @@ except ImportError:
 	import json
 vfs = VFSClass()
 DISABLED = False
+AUTH_KEY = ADDON.get_setting('auth_key')
+AUTH_PIN = ADDON.get_setting('auth_pin')
 
 SEGMENT_SIZE = int(float(ADDON.get_setting('segment_size')) * 1000 * 1000)
 CHUNK_SIZE = int(ADDON.get_setting('chunk_size'))
@@ -93,19 +95,19 @@ class RequestHandler(BaseHTTPRequestHandler):
 					DB=SQLiteDatabase(DB_FILE)
 					DB.execute("DELETE FROM queue WHERE id=?", [data['id'][0]])
 					DB.commit()
-					self.do_Response("{'status': 200, 'message': 'success'}")
+					self.do_Response()
 				elif data['method'][0] == 'restartQueue':
 					DB=SQLiteDatabase(DB_FILE)
 					DB.execute("UPDATE queue SET status=1 WHERE id=?", [data['id'][0]])
 					DB.commit()
-					self.do_Response("{'status': 200, 'message': 'success'}")
+					self.do_Response()
 				elif data['method'][0] == 'abortQueue':
 					set_property("abort_all", "true")
-					self.do_Response("{'status': 200, 'message': 'success'}")						
+					self.do_Response()						
 				elif data['method'][0] == 'getQueue':
 					DB=SQLiteDatabase(DB_FILE)
 					rows = DB.query("SELECT id, video_type, filename, status, raw_url FROM queue ORDER BY id ASC", force_double_array=True)
-					self.do_Response(json.dumps(rows))
+					self.do_Response(rows)
 				elif data['method'][0] == 'getTVShows':
 					shows = vfs.ls(TVSHOW_DIRECTORY)
 					results = []
@@ -140,7 +142,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 					self.wfile.write(f.read())
 					f.close()
 				else:
-					self.do_Response("{'status': 200, 'message': 'success'}")
+					self.do_Response()
 				return True
 			else:
 				if self.path=='/':
@@ -179,25 +181,96 @@ class RequestHandler(BaseHTTPRequestHandler):
 			self.send_error(500,'Internal Server Error')
 			return False
 	def do_POST(self):
-		try:
-			ctype, pdict = cgi.parse_header(self.headers.getheader('content-type'))
-			if ctype == 'multipart/form-data':
-				query=cgi.parse_multipart(self.rfile, pdict)
-				print query
-			self.send_response(301)
-
-			self.end_headers()
-			upfilecontent = query.get('upfile')
-			print "filecontent", upfilecontent[0]
-			self.wfile.write("<HTML>POST OK.<BR><BR>");
-			self.wfile.write(upfilecontent[0]);
-		except:
-			self.send_error(500,'Internal Server Error')
+		parts = urlparse(self.path)
+		#try:
+		path = parts.path
+		if path == '/api.json':
+			query = parts.query
+			params = cgi.parse_qs(query, keep_blank_values=True)
+			self.data_string = self.rfile.read(int(self.headers['Content-Length']))
+			data = json.loads(self.data_string)
+			try:
+				if data['auth_key'] != AUTH_KEY or data['pin'] != AUTH_PIN: self.send_error(401,'Unauthorized')
+			except: self.send_error(401,'Unauthorized')
+			if data['method'] == 'enqueue':
+				try:
+					count = len(data['videos'])
+					SQL = "INSERT INTO queue(video_type, filename, raw_url, url) VALUES(?,?,?,?)"
+					inserts =[]
+					for video in data['videos']:
+						inserts.append((video['type'], video['filename'], video['raw_url'], video['url']))
+					DB=SQLiteDatabase(DB_FILE)
+					DB.execute_many(SQL, inserts)
+					DB.commit()
+					DB.disconnect()
+					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'],'count': count})
+				except:
+					self.send_error(500,'Internal Server Error')
+			elif data['method'] == 'restart':
+				try:
+					count = len(data['videos'])
+					DB=SQLiteDatabase(DB_FILE)
+					SQL = "UPDATE queue SET status=1 WHERE id=?"
+					for video in data['videos']:
+						DB.execute(SQL, [video['id']])
+					DB.commit()
+					DB.disconnect()
+					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'],'count': count})
+				except:
+					self.send_error(500,'Internal Server Error')
+			elif data['method'] == 'delete':
+				try:
+					count = len(data['videos'])
+					DB=SQLiteDatabase(DB_FILE)
+					SQL = "DELETE FROM queue WHERE id=?"
+					for video in data['videos']:
+						DB.execute(SQL, [video['id']])
+					DB.commit()
+					DB.disconnect()
+					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'],'count': count})
+				except:
+					self.send_error(500,'Internal Server Error')
+			elif data['method'] == 'progress':
+				try:
+					progress = {
+							"id": get_property('id'), 
+							"cached_bytes": get_property('cached'),
+							"total_bytes": get_property('total_bytes'),
+							"percent": get_property('percent'),
+					}
+					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'progress': progress})
+				except:
+						self.send_error(500,'Internal Server Error')		
+			elif data['method'] == 'search':		
+					try:
+						from trakt_api import TraktAPI
+						trakt = TraktAPI()
+						results = trakt.search(data['query'], data['type'])
+						self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], "results": results})
+					except:
+						self.send_error(500,'Internal Server Error')
+			elif data['method'] == 'abort':
+				try:
+					set_property("abort_all", "true")
+					self.do_Response({'status': 200, 'message': 'success', 'method': data['method']})
+				except:
+					self.send_error(500,'Internal Server Error')
+			else:
+				self.send_error(400,'Bad Request')	
 			
-	def do_Response(self, content, content_type='application/json', response=200):
+		else:
+			self.send_error(403,'Forbidden')
+		#except IOError:
+		#	self.send_error(500,'Internal Server Error')
+		#	return False
+
+			
+	def do_Response(self, content={'status': 200, 'message': 'success'}, content_type='application/json', response=200):
 		self.send_response(response)
 		self.send_header('Content-type',	content_type)
 		self.end_headers()
+		if content_type == 'application/json':
+			content = json.dumps(content)
 		self.wfile.write(content)
 		
 class Transmogrifier():

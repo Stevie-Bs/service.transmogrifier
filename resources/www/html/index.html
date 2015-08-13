@@ -109,11 +109,19 @@
 					<li><a href="#movies">Movies</a></li>
 					<li><a href="#log">Kodi.log</a></li>
 				</ul>
+			
 			</div>
+			<a href="#addTVShow" id="addTVShowButton" data-theme="b" data-icon="add" data-rel="popup" data-transition="pop">Add</a>
 		</div>
 		<div data-role="content">
 		<ol data-role="listview" data-filter="true" data-filter-placeholder="Filter shows..." data-filter-theme="d" data-theme="d" data-divider-theme="d" id="tvshowList">
 		</div>
+		
+		<div data-role="popup" id="addTVShow" data-position-to="window" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-icon-check ui-btn-icon-left ui-btn-a" data-transition="pop"style="min-width:400px; min-height:250px">
+			<input type="search" data-theme="d" name="addTVShowSearchField" id="addTVShowSearchField" value="" placeholder="Search for Shows..." />
+			<ul data-role="listview" id="addTVShowSearchResults"></ul>			 
+		</div>
+
 	</div>
 	<div data-role="page" id="movies">
 		<div data-role="header">

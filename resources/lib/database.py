@@ -6,10 +6,19 @@ IGNORE_UNIQUE_ERRORS = True
 class DatabaseClass:
 	def __init__(self, quiet=True):
 		self.quiet=quiet
+		self._unique_str = 'column (.)+ is not unique$'
 
 	def commit(self):
 		ADDON.log("Commiting to %s" % self.db_file)
 		self.DBH.commit()
+
+	def disconnect(self):
+		if self.db_type == 'sqlite':
+			print "Disconnecting from %s" % self.db_file
+			self.DBC.close()
+		else:
+			print "Disconnecting from %s on %s" % (self.dbname, self.host)
+			self.DBC.close()
 
 	def query(self, SQL, data=None, force_double_array=False):
 		if data:
@@ -33,12 +42,20 @@ class DatabaseClass:
 			except:
 				self.lastrowid = None
 		except Exception, e:
-			if IGNORE_UNIQUE_ERRORS and re.match('column (.)+ is not unique$', str(e)):				
+			if IGNORE_UNIQUE_ERRORS and re.match(self._unique_str, str(e)):				
 				ADDON.log('****** SQL ERROR: %s' % e)
+	
+	def execute_many(self, SQL, data):
+		try:
+			self.DBC.executemany(SQL, data)
+		except Exception, e:
+			if IGNORE_UNIQUE_ERRORS and re.match(self._unique_str, str(e)):				
+				print '****** SQL ERROR: %s' % e			
 
 class SQLiteDatabase(DatabaseClass):
 	def __init__(self, db_file='', quiet=False):
 		self.quiet=quiet
+		self._unique_str = 'column (.)+ is not unique$'
 		self.db_type = 'sqlite'
 		self.lastrowid = None
 		self.db_file = db_file		
