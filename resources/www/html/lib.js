@@ -1,6 +1,8 @@
 var auth_key = '0c9d3e4b3b76e5793f7ca4fdc5725c08'
-var auth_pin = ''
+var auth_pin = '5867'
 var base_url = '/api.json'
+var __queue_poll__ = false;
+var __id__ = false;
 $(document).ready(function() {
 	var __queue_poll__ = false;
 	$("#LoginButton").live("click", function(event, ui) {
@@ -71,10 +73,11 @@ $(document).delegate('#tvshows', 'pageshow', function () {
 
 $(document).delegate('#movies', 'pageshow', function () {
 	__queue_poll__ = false;
-	$.getJSON('/query/?method=getMovies', function(json) {
+	data = JSON.stringify({"method": "movies", "auth_key": auth_key, "pin": auth_pin})
+	$.post(base_url, data, function(json) {
 		html = ''
-		$.each(json, function(index){
-			row = json[index]
+		$.each(json['movies'], function(index){
+			row = json['movies'][index]
 			el = '<li class="movieListItem" value="' + row + '">' + row
 			el += '</li>'
 			html += el
@@ -85,8 +88,7 @@ $(document).delegate('#movies', 'pageshow', function () {
 	});
 
 });
-var __queue_poll__ = false;
-var __id__ = false;
+
 $(document).delegate('#queue', 'pageshow', function () {
 	__queue_poll__ = true;
 	$(".queueListItem").live("click", function(event, ui) {
@@ -97,7 +99,15 @@ $(document).delegate('#queue', 'pageshow', function () {
 		html = ''
 		$.each(json['queue'], function(index){
 			row = json['queue'][index]
-			html += '<li class="queueListItem" value="'+row[0]+'"><a href="#queueContext" data-rel="popup" data-transition="pop" data-position-to="origin">'+row[1]+' - '+row[2]+'</a><div class="queueprogress" id="queue_progress_'+row[0]+'"></div></li>'
+			el = '<li class="queueListItem" value="'
+			el +=row[0]+'">'
+			el += '<a href="#queueContext" data-rel="popup" data-transition="pop" data-position-to="origin">'
+			el += '<img src="/images/' +row[1]+'.png" class="ui-li-icon">'
+			el += row[2]
+			el += '</a><div class="queueprogress" id="queue_progress_'
+			el += row[0]
+			el += '"></div></li>'
+			html += el
 		});
 		$('#queueList').html(html);
 		$('#queueList').listview("refresh");

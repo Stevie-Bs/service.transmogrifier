@@ -261,6 +261,12 @@ class RequestHandler(BaseHTTPRequestHandler):
 					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'tvshows': videos})
 				except:
 						self.send_error(500,'Internal Server Error')
+			elif data['method'] == 'movies':
+				try:
+					videos = vfs.ls(MOVIE_DIRECTORY, pattern="avi$")[1]
+					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'movies': videos})
+				except:
+						self.send_error(500,'Internal Server Error')			
 			elif data['method'] == 'search':
 				try:
 					from trakt_api import TraktAPI
