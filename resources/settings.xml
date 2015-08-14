@@ -10,7 +10,7 @@
         <setting id="segment_size" type="labelenum" label="Segment Size (MB)" values="2.5|5|10|15|20|25|50" default="5" visible="!eq(-5,false)"/>
         <setting type="lsep" label="Web Server"/>
         <setting id="enable_webserver" type="bool" label="Enable Webserver" default="true"/>
-        <setting id="auth_key" type="text" label="Auth Key" default="0c9d3e4b3b76e5793f7ca4fdc5725c08"/>
+        <setting id="auth_key" type="text" label="Auth Key" default="0c9d3e4b3b76e5793f7ca4fdc5725c08" visible="false"/>
         <setting id="auth_pin" type="text" label="Pin" default="5867"/>
         <setting label="Port" type="slider" id="control_port" default="8750" range="8000,1,8999" option="int" visible="!eq(-1,false)"/>
         <setting type="lsep" label="General"/>

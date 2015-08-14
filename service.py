@@ -124,6 +124,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 				headers = {
 						'.css': 	'text/css',
 						'.js':		'application/javascript',
+						'.json':	'application/json',
 						'.ico':		'image/x-icon',
 						'.jpg':		'image/jpeg',
 						'.png':		'image/png',
