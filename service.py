@@ -6,6 +6,7 @@ import os
 import math
 import string
 import cgi
+import re
 from os import curdir, sep
 from urlparse import urlparse
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
@@ -78,8 +79,9 @@ class RequestHandler(BaseHTTPRequestHandler):
 			path = parts.path
 			query = parts.query
 			data = cgi.parse_qs(query, keep_blank_values=True)
-			if path == '/query/':
-				if data['method'][0] == 'getLogContent':
+			arguments = path.split('/')
+			if arguments[1] == 'query':
+				if arguments[2] == 'log':
 					logfile = vfs.join('special://temp', 'kodi.log')
 					f = open(logfile)
 					contents = f.read()
@@ -89,44 +91,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 					contents = re.sub('<user>(.+?)</user>', '<user>******</user>', contents)
 					contents = re.sub('<pass>(.+?)</pass>', '<pass>******</pass>', contents)
 					self.do_Response(contents, 'text/plain')
-				elif data['method'][0] == 'getProgress':
-					response = {
-							"id": get_property('id'), 
-							"cached_bytes": get_property('cached'),
-							"total_bytes": get_property('total_bytes'),
-							"percent": get_property('percent'),
-					}
-					self.do_Response(json.dumps(response))
-				elif data['method'][0] == 'deleteQueue':
-					DB=MyDatabaseAPI(DB_FILE)
-					DB.execute("DELETE FROM queue WHERE id=?", [data['id'][0]])
-					DB.commit()
-					self.do_Response()
-				elif data['method'][0] == 'restartQueue':
-					DB=MyDatabaseAPI(DB_FILE)
-					DB.execute("UPDATE queue SET status=1 WHERE id=?", [data['id'][0]])
-					DB.commit()
-					self.do_Response()
-				elif data['method'][0] == 'abortQueue':
-					set_property("abort_all", "true")
-					self.do_Response()						
-				elif data['method'][0] == 'getQueue':
-					DB=MyDatabaseAPI(DB_FILE)
-					rows = DB.query("SELECT id, video_type, filename, status, raw_url FROM queue ORDER BY id ASC", force_double_array=True)
-					self.do_Response(rows)
-				elif data['method'][0] == 'getTVShows':
-					shows = vfs.ls(TVSHOW_DIRECTORY)
-					results = []
-					for show in shows[1]:
-						results.append(show)
-					self.do_Response(json.dumps(results))
-				elif data['method'][0] == 'getMovies':
-					movies = vfs.ls(MOVIE_DIRECTORY)
-					results = []
-					for movie in movies[1]:
-						results.append(movie)
-					self.do_Response(json.dumps(results))
-				elif data['method'][0] == 'downloadFile':
+				elif arguments[2] == 'download':
 					if data['media'][0] == 'movie':
 						path = vfs.join(MOVIE_DIRECTORY, data['file'][0])
 					else:
@@ -134,7 +99,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 					if not vfs.exists(path):
 						self.send_error(404,'File Not Found: %s' % self.path)
 						return False
-					f = open(path, "r")
+					file_size =  vfs.get_size(path)
+					f = vfs.open(path, "r")
 					
 					self.send_response(200)
 					self.send_header("Pragma", "public")
@@ -144,12 +110,12 @@ class RequestHandler(BaseHTTPRequestHandler):
 					self.send_header("Content-Type", "application/octet-stream")
 					self.send_header("Content-Type", "application/download")
 					self.send_header("Content-Disposition", 'attachment; filename="%s"' % data['file'][0]);
+					self.send_header("Content-Length", file_size)
 					self.end_headers()
 					self.wfile.write(f.read())
 					f.close()
 				else:
-					self.do_Response()
-				return True
+					self.send_error(400,'Bad Request')
 			else:
 				if self.path=='/':
 					self.path='/index.html'
@@ -243,6 +209,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 							"cached_bytes": get_property('cached'),
 							"total_bytes": get_property('total_bytes'),
 							"percent": get_property('percent'),
+							"active_threads": get_property('active_threads'),
+							"speed": get_property('speed'),
 					}
 					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'progress': progress})
 				except:
@@ -282,7 +250,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 				except:
 					self.send_error(500,'Internal Server Error')
 			else:
-				self.send_error(400,'Bad Request')	
+				self.send_error(400,'Bad Request')
 			
 		else:
 			self.send_error(403,'Forbidden')
@@ -343,6 +311,8 @@ class Transmogrifier():
 		self.set_property('cached', 0)
 		self.set_property('total_bytes', 'False')
 		self.set_property('id', '')
+		self.set_property('speed', '')
+		self.set_property('delta', '')
 		ADDON.log("Waiting to Transmogrify...",1)
 		
 	def set_property(self, k, v):
@@ -397,6 +367,7 @@ class Transmogrifier():
 				return p
 			percent = int(100 * self.cached / self.total_bytes)
 			self.set_property("percent", percent)
+			self.set_property("speed", kbs)
 		#percent = int(100 * self.cached / self.total_bytes)
 		ADDON.log("Progress: %s%s %s/%s %s KBs" % (percent, '%', self.cached, self.total_bytes, kbs))
 		return p
@@ -448,7 +419,7 @@ class Transmogrifier():
 		try:
 			now = time.time()
 			delta = int(now - self.started)
-			kbs = int(self.total_bytes / (delta * 1000))
+			kbs = int(self.cached / (delta * 1000))
 			return delta, kbs
 		except:
 			return False, False

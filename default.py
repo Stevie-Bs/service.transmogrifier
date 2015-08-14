@@ -5,15 +5,26 @@ import os
 import sys
 import math
 import xbmc,xbmcgui
+import socket
 import pyxbmct.addonwindow as pyxbmct
 sys.path.append(os.path.join(xbmc.translatePath( "special://home/addons/script.module.pyxbmctmanager/" ), 'lib'))
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', 'lib'))
-from common import *
-from database import *
-from vfs import VFSClass
+from dudehere.routines import *
+from dudehere.routines.vfs import VFSClass
 vfs = VFSClass()
+from dudehere.routines.database import SQLiteDatabase as DatabaseAPI
+class MyDatabaseAPI(DatabaseAPI):
+	def _initialize(self):
+		self.execute('CREATE TABLE IF NOT EXISTS "queue" ("id" INTEGER PRIMARY KEY AUTOINCREMENT, "priority" INTEGER DEFAULT (10), "video_type" TEXT, "filename" TEXT, "uuid" TEXT, "raw_url" TEXT, "url" TEXT, "status" INTEGER DEFAULT (1))')
+		self.commit()
+		ADDON.addon.setSetting('database_init', 'true')
+	
+if not vfs.exists(DATA_PATH):
+	vfs.mkdir(DATA_PATH)
+DB_FILE = vfs.join(DATA_PATH, 'cache.db', ADDON.get_setting('log_level')==0)
+DB=MyDatabaseAPI(DB_FILE)
 DB_FILE = vfs.join(DATA_PATH, 'cache.db')
-DB=SQLiteDatabase(DB_FILE)
+DB=MyDatabaseAPI(DB_FILE)
 WINDOW_PREFIX = 'transmogrifier'
 MESSAGE_ACTION_OK = 110
 MESSAGE_EXIT = 111
@@ -31,21 +42,25 @@ def get_property(k):
 	if p == 'true': return True
 	return p
 
-def add_to_queue():
-	SQL = "INSERT INTO queue(video_type, filename, raw_url, url) VALUES(?,?,?,?)"
-	DB.execute(SQL, [args['video_type'], args['filename'], args['raw_url'], args['resolved_url']])
-	DB.commit()
-
-	
 def view_queue():
 	from pyxbmctmanager.window import Window
 
 	class QueueWindow(Window):
 		def __init__(self, title):
-			super(self.__class__,self).__init__(title,width=1000, height=650, columns=4, rows=18)
+			super(self.__class__,self).__init__(title,width=500, height=280, columns=3, rows=5)
 			self.draw()
 		
-		def confirm(self, msg='', msg2='', msg3=''):
+		def set_info_controls(self):
+			address = '[B][COLOR blue]http://%s:%s[/COLOR][/B]' % (socket.gethostname(), ADDON.get_setting('control_port'))
+			self.add_label(self.create_label("This is not yet implemented.", alignment=2, font="font14"), 0,0,columnspan=3)
+			self.add_label(self.create_label("Go to the web service address for managment.", alignment=2), 1,0,columnspan=3)
+			self.add_label(self.create_label(address, alignment=2), 2,0,columnspan=3)
+			
+			self.create_button('close', 'Close')
+			self.add_object("close", 4, 1)
+			self.set_object_event('action', 'close', self.close)
+		
+		'''def confirm(self, msg='', msg2='', msg3=''):
 			dialog = xbmcgui.Dialog()
 			return dialog.yesno(msg, msg2, msg3)
 		
@@ -59,10 +74,6 @@ def view_queue():
 			self.typeLabel.setLabel(self.__items[self._index][0])
 			table = ["error", "pending", "caching", "complete"]
 			self.statusLabel.setLabel(table[self.__items[self._index][3]])		
-			'''while True:
-				
-				self.set_progress(get_property("percent"))
-				xbmc.sleep(1000)'''
 				
 		def pg(self):
 				pDialog = xbmcgui.DialogProgress()
@@ -178,33 +189,14 @@ def view_queue():
 			self.set_object_event("action", "abort", self.abort)
 			
 			self.set_object_event("focus", "queue")
+		'''
 			
 	queue = QueueWindow('%s Version: %s' % (ADDON_NAME, VERSION))
-	queue.set_object_event("focus", "queue")
+	#queue.set_object_event("focus", "queue")
 	queue.show()
-	'''
-	try: Emulating = xbmcgui.Emulating
-	except: Emulating = False
-	class StatusWindow(xbmcgui.WindowXMLDialog):
-		if Emulating: xbmcgui.WindowXMLDialog.__init__(self)
-		
-		def onInit(self):
-			#rows = DB.query("SELECT video_type, filename FROM queue WHERE status=1", force_double_array=True)
-			#self.__items = rows
-			
-			for r in range(1,100):
-				li = xbmcgui.ListItem(str(r))
-				self.getControl(50).addItem(li)
-				print r
-				
-	ui = StatusWindow('transmogrifier.xml', ROOT_PATH)
-	ui.doModal()
-	del ui
-	'''
+
 	
 args = ADDON.parse_query(sys.argv[2])
 print args
 if args['mode'] == 		'main':
 	view_queue()
-elif args['mode'] ==	'add_to_queue':
-	add_to_queue()		

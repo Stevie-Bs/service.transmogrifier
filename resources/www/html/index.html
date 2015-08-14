@@ -11,25 +11,25 @@
 	<script src="lib.js"></script>
 <style>
 .ui-page.ui-body-c {
-    background: url(images/backdrop.jpg);
-    background-repeat:no-repeat;
-    background-position:center center;
-    background-size:cover;  
+	background: url(images/backdrop.jpg);
+	background-repeat:no-repeat;
+	background-position:center center;
+	background-size:cover;  
 }
 
 #subscriptionPanel-popup {
-    right: 0 !important;
-    left: auto !important;
+	right: 0 !important;
+	left: auto !important;
 }
 #subscriptionPanel {
-    width: 200px;
-    border: 1px solid #000;
-    border-right: none;
-    background: rgba(0,0,0,.5);
-    margin: -1px 0;
+	width: 200px;
+	border: 1px solid #000;
+	border-right: none;
+	background: rgba(0,0,0,.5);
+	margin: -1px 0;
 }
 #subscriptionPanel .ui-btn {
-    	margin: 0px;
+	margin: 0px;
 	margin-left: 15px;
 	margin-right: 15px;
 }	
@@ -40,11 +40,11 @@
 }
 #status{
 	position:fixed;
-   	left:0px;
-   	bottom:0px;
-   	height:20px;
-   	width:100%;
-   	background:#CCCCCC;
+	left:0px;
+	bottom:0px;
+	height:20px;
+	width:100%;
+	background:#CCCCCC;
 	border-top: solid 1px #333333;
 	padding-left: 5px;
 	padding-top: 5px;
@@ -56,8 +56,10 @@
 <body> 
 	<div data-role="page" id="home">
 		<div data-role="header">
+			<a href="#home" data-theme="c" data-icon="home" data-iconpos="notext" data-direction="reverse">Home</a>
 			<h1>Service.Transmogrifier</h1>
-			<div data-role="navbar">
+			<a href="#popupLogin" id="setPinButton" data-theme="d" data-icon="star" data-iconpos="notext" data-rel="popup" data-transition="pop">Login</a>
+			<div data-role="navbar"> 
 				<ul>
 					<li><a href="#home" class="ui-btn-active ui-state-persist">Home</a></li>
 					<li><a href="#queue">Queue</a></li>
@@ -66,18 +68,18 @@
 					<li><a href="#log">Kodi.log</a></li>
 				</ul>
 			</div>
-			<a href="#popupLogin" id="setPinButton" data-theme="d" data-icon="star" data-iconpos="notext" data-rel="popup" data-transition="pop">Login Pin</a>
+
 		</div>
-		<div data-role="content">	
+		<div data-role="content">
 		</div>
 
 		<div data-role="popup" id="popupLogin" data-theme="a" class="ui-corner-all">
-		<div style="padding:10px 20px;">
-		  <h3>Please set pin</h3>
-		  <label for="un" class="ui-hidden-accessible">Login Pin:</label>
-		  <input type="password" name="auth_pin" id="auth_pin" value="" placeholder="pin" data-theme="a" />
-	    	  <button id="LoginButton" data-theme="b">Set Login Pin</button>
-		</div>
+			<div style="padding:10px 20px;">
+				<h3>Please set pin</h3>
+				<label for="un" class="ui-hidden-accessible">Login Pin:</label>
+				<input type="password" name="auth_pin" id="auth_pin" value="" placeholder="pin" data-theme="a" />
+				<button id="LoginButton" data-theme="b">Set Login Pin</button>
+			</div>
 		</div>
 	</div>
 
@@ -85,6 +87,7 @@
 		<div data-role="header">
 			<a href="#home" data-theme="c" data-icon="home" data-iconpos="notext" data-direction="reverse">Home</a>
 			<h1>Service.Transmogrifier: Queue</h1>
+			<a href="#addToQueue" id="addToQueueButton" data-theme="d" data-icon="check" data-rel="popup" data-transition="pop">Enqueue</a>
 			<div data-role="navbar">
 				<ul>
 					<li><a href="#home">Home</a></li>
@@ -96,16 +99,33 @@
 			</div>
 		</div>
 		<div data-role="content">
-		<ul data-role="listview" data-filter="true" data-filter-placeholder="Filter queue..." data-filter-theme="d" data-theme="d" data-divider-theme="d" id="queueList">
+		<ul data-role="listview" data-filter="true" data-filter-placeholder="Filter queue..." data-filter-theme="d" data-theme="d" data-divider-theme="d" id="queueList"></ul>
 		</div>
-	<div data-role="popup" id="queueContext" data-theme="d">
-		<ul data-role="listview" data-inset="true" style="min-width:210px;">
-			<li data-role="list-divider">Choose an action</li>
-			<li id="queueRestart"><a href="#" id="">Restart</a></li>
-			<li id="queueAbort"><a href="#">Abort</a></li>
-			<li id="queueDelete"><a href="#">Delete</a></li>
-		</ul>
-	</div>
+		<div data-role="popup" id="queueContext" data-theme="d">
+			<ul data-role="listview" data-inset="true" style="min-width:210px;">
+				<li data-role="list-divider">Choose an action</li>
+				<li id="queueRestart"><a href="#" id="">Restart</a></li>
+				<li id="queueAbort"><a href="#">Abort</a></li>
+				<li id="queueDelete"><a href="#">Delete</a></li>
+			</ul>
+		</div>
+		<div data-role="popup" data-position-to="window" id="addToQueue" data-theme="a" class="ui-corner-all" style="min-width:210px; width:500px">
+			<div style="padding:10px 20px;>
+				<h3>Add a link to the queue</h3>
+				<fieldset data-role="controlgroup" data-mini="true" data-theme="a">
+					<input type="radio" name="queue_video_type" id="queue_video_type-1" value="tvshow" checked="checked" data-theme="a"/>
+					<label for="queue_video_type-1">TVShow</label>
+					<input type="radio" name="queue_video_type" id="queue_video_type-2" value="movie" data-theme="a"/>
+					<label for="queue_video_type-2">Movie</label>
+				</fieldset>
+				<label for="un" class="ui-hidden-accessible">File Name:</label>
+				<input type="text" name="queue_filename" id="queue_filename" value="" placeholder="filename..." data-theme="a" />
+				<label for="un" class="ui-hidden-accessible">URL:</label>
+				<input type="text" name="queue_url" id="queue_url" value="" placeholder="url..." data-theme="a" />
+				<button id="EnqueueButtonCacnel" data-theme="d" data-inline="true" data-icon="delete">Cancel</button>
+				<button id="EnqueueButton" data-theme="b" data-inline="true" data-icon="check">Save</button>
+			</div>
+		</div>
 	</div>
 	<div data-role="page" id="tvshows">
 		<div data-role="header">
@@ -121,15 +141,14 @@
 				</ul>
 			
 			</div>
-			<a href="#addTVShow" id="addTVShowButton" data-theme="b" data-icon="add" data-rel="popup" data-transition="pop">Add</a>
 		</div>
 		<div data-role="content">
-		<ol data-role="listview" data-filter="true" data-filter-placeholder="Filter shows..." data-filter-theme="d" data-theme="d" data-divider-theme="d" id="tvshowList">
+		<ul data-role="listview" data-filter="true" data-filter-placeholder="Filter shows..." data-filter-theme="d" data-theme="d" data-divider-theme="d" id="tvshowList"></ul>
 		</div>
 		
 		<div data-role="popup" id="addTVShow" data-position-to="window" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-icon-check ui-btn-icon-left ui-btn-a" data-transition="pop"style="min-width:400px; min-height:250px">
 			<input type="search" data-theme="d" name="addTVShowSearchField" id="addTVShowSearchField" value="" placeholder="Search for Shows..." />
-			<ul data-role="listview" id="addTVShowSearchResults"></ul>			 
+			<ul data-role="listview" id="addTVShowSearchResults"></ul>
 		</div>
 
 	</div>
@@ -148,7 +167,7 @@
 			</div>	
 		</div>
 		<div data-role="content">
-		<ol data-role="listview" data-filter="true" data-filter-placeholder="Filter shows..." data-filter-theme="d" data-theme="d" data-divider-theme="d" id="movieList">
+		<ul data-role="listview" data-filter="true" data-filter-placeholder="Filter shows..." data-filter-theme="d" data-theme="d" data-divider-theme="d" id="movieList"></ul>
 		</div>
 	</div>
 	<div data-role="page" id="log">
@@ -168,16 +187,13 @@
 		<div data-role="content">
 
 			<div class="ui-body ui-body-a" style="padding:2px;">
-				<h3>
-				<div data-role="controlgroup" data-type="horizontal" data-mini="true" style="text-align:center;"><a href="#" data-role="button" data-inline="true" data-theme="c">Download</a> <a href="#" data-role="button" data-inline="true" data-theme="c">Upload to xbmclogs</a></div>
-				</h3>
+				<h3></h3>
 				<div id="logcontent" class="ui-body ui-body-c">
 				</div>
 			</div>
 		</div>
 
 	</div>
-</div>
 <div id="status">Status:<span id="notes"></span></div>
 </body>
 </html>
