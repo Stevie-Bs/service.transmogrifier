@@ -1,20 +1,34 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <settings>
-    <category label="Transmogrifier">
-    	<setting type="lsep" label="Caching"/>
-    	<setting id="enable_transmogrifier" type="bool" label="Enable Transmogrifier" default="true"/>
-        <setting label="Output Directory" type="folder" default="special://userdata/addon_data/service.transmogrifier/downloads" id="save_directory" visible="!eq(-1,false)"/>
-        <setting label="Working Directory" type="folder" default="special://userdata/addon_data/service.transmogrifier/work" id="work_directory" visible="!eq(-2,false)"/>
-        <setting id="thread_number" type="slider" label="Max Threads" default="5" option="int" range="1,10" visible="!eq(-3,false)"/>
-        <setting id="chunk_size" type="labelenum" label="Buffer Size (KB)" values="500|750|1000|1250|1500|1750|2000" default="1500" visible="!eq(-4,false)" />
-        <setting id="segment_size" type="labelenum" label="Segment Size (MB)" values="2.5|5|10|15|20|25|50" default="5" visible="!eq(-5,false)"/>
-        <setting type="lsep" label="Web Server"/>
-        <setting id="enable_webserver" type="bool" label="Enable Webserver" default="true"/>
-        <setting id="auth_key" type="text" label="Auth Key" default="0c9d3e4b3b76e5793f7ca4fdc5725c08" visible="false"/>
-        <setting id="auth_pin" type="text" label="Pin" default="5867"/>
-        <setting label="Port" type="slider" id="control_port" default="8750" range="8000,1,8999" option="int" visible="!eq(-1,false)"/>
-        <setting type="lsep" label="General"/>
-        <setting id="log_level" type="enum" values="Standard|Verbose" label="Log Level" default="1"/>
-        <setting id="database_init" default="false" />
-    </category>
+	<category label="Transmogrifier">
+		<setting type="lsep" label="Caching"/>
+		<setting id="enable_transmogrifier" type="bool" label="Enable Transmogrifier" default="true"/>
+		<setting label="Output Directory" type="folder" default="special://userdata/addon_data/service.transmogrifier/downloads" id="save_directory" visible="!eq(-1,false)"/>
+		<setting label="Working Directory" type="folder" default="special://userdata/addon_data/service.transmogrifier/work" id="work_directory" visible="!eq(-2,false)"/>
+		<setting id="thread_number" type="slider" label="Max Threads" default="5" option="int" range="1,10" visible="!eq(-3,false)"/>
+		<setting id="chunk_size" type="labelenum" label="Buffer Size (KB)" values="500|750|1000|1250|1500|1750|2000" default="1500" visible="!eq(-4,false)" />
+		<setting id="segment_size" type="labelenum" label="Segment Size (MB)" values="2.5|5|10|15|20|25|50" default="5" visible="!eq(-5,false)"/>
+		
+		<setting type="lsep" label="General"/>
+		<setting id="log_level" type="enum" values="Standard|Verbose" label="Log Level" default="1"/>
+		</category>
+	<category label="Web Service">
+		<setting id="enable_webserver" type="bool" label="Enable Webserver" default="true"/>
+		<setting id="network_bind" type="labelenum" label="Network" values="All Subnets|Local Subnet|Localhost|" default="All Subnets" />
+		<setting label="Port" type="slider" id="control_port" default="8750" range="8000,1,8999" option="int" visible="!eq(-1,false)"/>
+		<setting id="auth_key" type="text" label="Auth Key" default="0c9d3e4b3b76e5793f7ca4fdc5725c08" visible="false"/>
+		<setting id="auth_pin" type="text" label="Pin" default="5867"/>
+	</category>
+	<category label="Database">
+		<setting id="database_sqlite" type="bool" label="Use SQLite Database" default="true" enable="eq(2,false) + !eq(-1,false)"/>
+		<setting id="database_sqlite_file" type="file" label="Database Location" default="special://userdata/addon_data/service.transmogrifier/transmogrifier.db" enable="!eq(-1,false)  + !eq(-2,false)" subsetting="true" />
+		<setting id="database_mysql" type="bool" label="Use MySQL Database" default="false" enable="!eq(-2,false) + !eq(-3,false)"/>		
+		<setting id="database_mysql_host" type="text" label="Server Address" default="" enable="!eq(-3,false) + !eq(-4,false)" subsetting="true" />
+		<setting id="database_mysql_name" type="text" label="Database Name" default="transmogrifier" enable="!eq(-4,false) + !eq(-5,false)" subsetting="true" />
+		<setting id="database_mysql_user" type="text" label="Username" default="" enable="!eq(-5,false) + !eq(-6,false)" subsetting="true" />
+		<setting id="database_mysql_pass" type="text" label="Password" option="hidden" default="" enable="!eq(-6,false) + !eq(-7,false)" subsetting="true" />
+		<setting id="database_mysql_port" type="number" label="Port" default="3306" enable="!eq(-7,false) + !eq(-8,false)" subsetting="true" />
+		<setting id="database_sqlite_init" type="text" default="false" visible="false" />
+		<setting id="database_mysql_init" type="text" default="false" visible="false" />
+	</category>
 </settings>
