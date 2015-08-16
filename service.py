@@ -16,6 +16,7 @@ import shutil
 import uuid
 from threading import Thread
 import time
+import hashlib
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', 'lib'))
 from dudehere.routines import *
 from dudehere.routines.vfs import VFSClass
@@ -39,7 +40,7 @@ WORKING_DIRECTORY = ADDON.get_setting('work_directory')
 WINDOW_PREFIX = 'transmogrifier'
 WEB_ROOT = vfs.join(ROOT_PATH, 'resources/www/html')
 CONTROL_PORT = int(ADDON.get_setting('control_port'))
-
+VALID_TOKENS = []
 
 ADDON.log({"segment_size": SEGMENT_SIZE, "chunk_size": CHUNK_SIZE, "thread_number": NUMBER_THREADS})
 ADDON.log("Work Directory: %s" % WORKING_DIRECTORY)
@@ -196,9 +197,32 @@ class RequestHandler(BaseHTTPRequestHandler):
 			params = cgi.parse_qs(query, keep_blank_values=True)
 			self.data_string = self.rfile.read(int(self.headers['Content-Length']))
 			data = json.loads(self.data_string)
+			
 			try:
-				if data['auth_key'] != AUTH_KEY or data['pin'] != AUTH_PIN: self.send_error(401,'Unauthorized')
-			except: self.send_error(401,'Unauthorized')
+				if data['method'] == 'authorize':
+					if str(data['pin']) == ADDON.get_setting('auth_pin'):
+						token = hashlib.sha1(str(time.time())).hexdigest()
+						VALID_TOKENS.append(token)
+						self.do_Response({'status': 200, 'message': 'success', 'method': data['method'],'token': token})
+						return
+					else:
+						self.do_Response({'status': 401, 'message': 'Unauthorized', 'method': data['method']})
+						return
+				elif data['method'] == 'validate_token':
+					if data['token'] in VALID_TOKENS: self.do_Response({'status': 200, 'message': 'success', 'method': data['method']})
+					else: self.do_Response({'status': 401, 'message': 'Unauthorized', 'method': data['method']})
+					return
+			except:
+				self.send_error(401,'Unauthorized')
+				return
+			try:
+				#if data['auth_key'] != AUTH_KEY or data['pin'] != AUTH_PIN: self.send_error(401,'Unauthorized')
+				if data['token'] not in VALID_TOKENS:
+					self.send_error(401,'Unauthorized')
+					return
+			except: 
+				self.send_error(401,'Unauthorized')
+				return
 			if data['method'] == 'enqueue':
 				try:
 					count = len(data['videos'])
@@ -513,8 +537,12 @@ class Service():
 		monitor = xbmc.Monitor()
 		ADDON.log("Waiting to Transmogrify...",1)
 		if ADDON.get_setting('enable_webserver')=='true':
-			ADDON.log("Launching WebInterface on port: " + str(CONTROL_PORT))
-			server = HTTPServer(('', CONTROL_PORT), RequestHandler)
+			if ADDON.get_setting('network_bind') == 'Localhost':
+				address = "127.0.0.1"
+			else:
+				address = "0.0.0.0"
+			ADDON.log("Launching WebInterface on: %s:%s" % (address, CONTROL_PORT))
+			server = HTTPServer((address, CONTROL_PORT), RequestHandler)
 			webserver = Thread(target=server.serve_forever)
 			webserver.start()
 			

@@ -3,19 +3,27 @@ $(document).ready(function() {
 	$("#LoginButton").live("click", function(event, ui) {
 		$( "#popupLogin" ).popup( "close" );
 		auth_pin=$("#auth_pin").val()
-		setCookie("auth_pin", auth_pin,1)
+		data = JSON.stringify({"method": "authorize", "pin": auth_pin})
+		$.post(base_url, data, function(json) {
+			if (json['status'] == 401) {
+				alert("Login Error.\nInvalid PIN");
+			} else {
+				token = json['token']
+				setCookie("token", token,1)
+			}
+		});	
 	});
 	$("#queueRestart").live("click", function(event, ui) {
 		$('#queue_progress_' + __id__).css("width", "0%")
 		$('#queue_progress_' + __id__).css("background", 'green');
-		data = JSON.stringify({"method": "restart", "auth_key": auth_key, "pin": auth_pin, "videos": [{"id":__id__}]})
+		data = JSON.stringify({"method": "restart", "token": token, "videos": [{"id":__id__}]})
 		$.post(base_url, data);
 		$( "#queueContext" ).popup( "close" );
 		loadQueuePage();
 	});
 
 	$("#queueAbort").live("click", function(event, ui) {
-		data = JSON.stringify({"method": "abort", "auth_key": auth_key, "pin": auth_pin})
+		data = JSON.stringify({"method": "abort", "token": token})
 		$.post(base_url, data);
 		$( "#queueContext" ).popup( "close" );
 		loadQueuePage();
@@ -25,7 +33,7 @@ $(document).ready(function() {
 	});
 
 	$("#queueDelete").live("click", function(event, ui) {
-		data = JSON.stringify({"method": "delete", "auth_key": auth_key, "pin": auth_pin, "videos": [{"id":__id__}]})
+		data = JSON.stringify({"method": "delete", "token": token, "videos": [{"id":__id__}]})
 		$.post(base_url, data);
 		$( "#queueContext" ).popup( "close" );
 		loadQueuePage();
@@ -38,7 +46,7 @@ $(document).ready(function() {
 		url = $('#queue_url').val()
 		filename = $('#queue_filename').val()
 		video_type = $("#queue_video_type-1").attr("checked") == 'checked' ? 'tvshow': 'movie';
-		data = JSON.stringify({"method": "enqueue", "auth_key": auth_key, "pin": auth_pin, "videos": [{"type":video_type, "filename": filename, "raw_url": url, "url": url}]})
+		data = JSON.stringify({"method": "enqueue", "token": token, "videos": [{"type":video_type, "filename": filename, "raw_url": url, "url": url}]})
 		$.post(base_url, data);
 		$( "#addToQueue" ).popup( "close" );
 		loadQueuePage();
@@ -51,47 +59,21 @@ $(document).ready(function() {
 			$("input[type='radio']").checkboxradio("refresh");
 		}
 	});
+	
+	data = JSON.stringify({"method": "validate_token", "token": token})
+	$.post(base_url, data, function(json) {
+		if (json['status']==401) {
+			$( "#popupLogin" ).popup( "open" );
+		}
+	});
 });
-function refreshPage(href) {
-	$.mobile.changePage(
-			href,{
-			allowSamePageTransition	: true,
-			transition				: 'none',
-			showLoadMsg				: false,
-			reloadPage				: true
-			}
-	);
-}
-function setCookie(cname, cvalue, exdays) {
-	var d = new Date();
-	d.setTime(d.getTime() + (exdays*24*60*60*1000));
-	var expires = "expires="+d.toUTCString();
-	document.cookie = cname + "=" + cvalue + "; " + expires;
-}
-function getCookie(cname) {
-	var name = cname + "=";
-	var ca = document.cookie.split(';');
-	for(var i=0; i<ca.length; i++) {
-		var c = ca[i];
-		while (c.charAt(0)==' ') c = c.substring(1);
-		if (c.indexOf(name) == 0) return c.substring(name.length,c.length);
-	}
-	return "";
-}
-function notify(text) {
-	$("#notes").html(text);
-}
-var auth_key = '0c9d3e4b3b76e5793f7ca4fdc5725c08'
-var auth_pin = getCookie('auth_pin')
-var base_url = '/api.json'
-var __queue_poll__ = false;
-var __id__ = false;
+
+
 
 $(document).delegate('#home', 'pageshow', function () {
 	__queue_poll__ = false;
 });
-__file__ = ''
-__files__ = []
+
 $(document).delegate('#tvshows', 'pageshow', function () {
 	__queue_poll__ = false;
 	$(".tvshowListItem").live("click", function(event, ui) {
@@ -99,7 +81,7 @@ $(document).delegate('#tvshows', 'pageshow', function () {
 		url = "/query/download/?media=tvshow&file=" + __file__
 		window.location.href=url
 	});
-	data = JSON.stringify({"method": "tvshows", "auth_key": auth_key, "pin": auth_pin})
+	data = JSON.stringify({"method": "tvshows", "token": token})
 	$.post(base_url, data, function(json) {
 		html = ''
 		$.each(json['tvshows'], function(index){
@@ -119,7 +101,7 @@ $(document).delegate('#tvshows', 'pageshow', function () {
 
 $(document).delegate('#movies', 'pageshow', function () {
 	__queue_poll__ = false;
-	data = JSON.stringify({"method": "movies", "auth_key": auth_key, "pin": auth_pin})
+	data = JSON.stringify({"method": "movies", "token": token})
 	$.post(base_url, data, function(json) {
 		html = ''
 		$.each(json['movies'], function(index){
@@ -137,32 +119,13 @@ $(document).delegate('#movies', 'pageshow', function () {
 	});
 
 });
-var format_size = function(fileSizeInBytes) {
-	var i = -1;
-	var byteUnits = [' kB', ' MB', ' GB', ' TB', 'PB', 'EB', 'ZB', 'YB'];
-	do {
-		fileSizeInBytes = fileSizeInBytes / 1024;
-		i++;
-	} while (fileSizeInBytes > 1024);
-	return Math.max(fileSizeInBytes, 0.1).toFixed(1) + byteUnits[i];
-};
-if (!String.prototype.format) {
-	String.prototype.format = function() {
-		var args = arguments;
-		return this.replace(/{(\d+)}/g, function(match, number) { 
-			return typeof args[number] != 'undefined'
-			? args[number]
-			: match
-			;
-		});
-	};
-}
+
 var loadQueuePage = function() {
 	__queue_poll__ = true;
 	$(".queueListItem").live("click", function(event, ui) {
 		__id__ = this.value
 	});
-	data = JSON.stringify({"method": "queue", "auth_key": auth_key, "pin": auth_pin})
+	data = JSON.stringify({"method": "queue", "token": token})
 	$.post(base_url, data, function(json) {
 		html = ''
 		$.each(json['queue'], function(index){
@@ -199,7 +162,7 @@ var loadQueuePage = function() {
 var poll_queue = function() {
 	setTimeout(function() {
 		if (__queue_poll__==true) {
-			data = JSON.stringify({"method": "progress", "auth_key": auth_key, "pin": auth_pin})
+			data = JSON.stringify({"method": "progress", "token": token})
 			$.post(base_url, data, function(json) {
 				details = "{0} of {1} at {2}KBs in {3} threads".format(
 					format_size(json['progress']['cached_bytes']), 
