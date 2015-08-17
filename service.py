@@ -17,6 +17,7 @@ import uuid
 from threading import Thread
 import time
 import hashlib
+import urlresolver
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', 'lib'))
 from dudehere.routines import *
 from dudehere.routines.vfs import VFSClass
@@ -293,7 +294,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 					videos = vfs.ls(MOVIE_DIRECTORY, pattern="avi$")[1]
 					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'movies': videos})
 				except:
-						self.send_error(500,'Internal Server Error')			
+						self.send_error(500,'Internal Server Error')
 			elif data['method'] == 'search':
 				try:
 					from trakt_api import TraktAPI
@@ -516,7 +517,7 @@ class Service():
 
 	def poll_queue(self):
 		if ADDON.get_setting('enable_transmogrifier')=='false': return False, False, False, False, False
-		SQL = "SELECT filename, url, id, video_type FROM queue WHERE status=1 ORDER BY priority, id ASC LIMIT 1"
+		SQL = "SELECT filename, url, id, video_type, raw_url FROM queue WHERE status=1 ORDER BY priority, id ASC LIMIT 1"
 		row = DB.query(SQL)
 		if row:
 			file_id = str(uuid.uuid4())
@@ -524,6 +525,10 @@ class Service():
 			url = row[1]
 			id = row[2]
 			video_type = row[3]
+			raw_url = row[4]
+			if raw_url and not url:
+				source = urlresolver.HostedMediaFile(url=raw_url)
+				url = source.resolve() if source else None
 			DB.execute("UPDATE queue SET status=2, uuid=? WHERE id=?", [file_id, id])
 			DB.commit()
 			message = "Queued: %s" % name
