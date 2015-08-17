@@ -117,8 +117,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 			arguments = path.split('/')
 			if arguments[1] == 'query':
 				if arguments[2] == 'log':
-					logfile = vfs.join('special://temp', 'kodi.log')
-					f = open(logfile)
+					logfile = vfs.join('special://logpath', 'kodi.log')
+					f = vfs.open(logfile)
 					contents = f.read()
 					f.close()
 					contents = re.sub('<host>(.+?)</host>', '<pass>******</pass>', contents)
