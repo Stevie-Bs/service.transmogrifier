@@ -109,13 +109,17 @@ def get_property(k):
 	return p
 
 class RequestHandler(BaseHTTPRequestHandler):
-	def do_GET(self):
+	def process_cgi(self):
 		parts = urlparse(self.path)
+		path = parts.path
+		query = parts.query
+		data = cgi.parse_qs(query, keep_blank_values=True)
+		arguments = path.split('/')
+		return arguments, data, path
+	
+	def do_GET(self):
+		arguments, data, path = self.process_cgi()
 		try:
-			path = parts.path
-			query = parts.query
-			data = cgi.parse_qs(query, keep_blank_values=True)
-			arguments = path.split('/')
 			if arguments[1] == 'query':
 				if arguments[2] == 'log':
 					logfile = vfs.join('special://logpath', 'kodi.log')
@@ -189,6 +193,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 		except IOError:
 			self.send_error(500,'Internal Server Error')
 			return False
+		
 	def do_POST(self):
 		parts = urlparse(self.path)
 		#try:
@@ -230,7 +235,14 @@ class RequestHandler(BaseHTTPRequestHandler):
 					SQL = "INSERT INTO queue(video_type, filename, raw_url, url) VALUES(?,?,?,?)"
 					inserts =[]
 					for video in data['videos']:
-						inserts.append((video['type'], video['filename'], video['raw_url'], video['url']))
+						raw_url = video['raw_url']
+						url = video['url']
+						if 'resolve' in video.keys():
+							if video['resolve'] == 'true':
+								raw_url = video['url']
+								url = ''
+						inserts.append((video['type'], video['filename'], raw_url, url))
+					print inserts	
 					DB=MyDatabaseAPI(DB_FILE)
 					DB.execute_many(SQL, inserts)
 					DB.commit()

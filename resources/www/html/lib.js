@@ -46,7 +46,8 @@ $(document).ready(function() {
 		url = $('#queue_url').val()
 		filename = $('#queue_filename').val()
 		video_type = $("#queue_video_type-1").attr("checked") == 'checked' ? 'tvshow': 'movie';
-		data = JSON.stringify({"method": "enqueue", "token": token, "videos": [{"type":video_type, "filename": filename, "raw_url": url, "url": url}]})
+		resolve = $("#queue_resolve_url").attr("checked") == 'checked' ? "true" : "false";
+		data = JSON.stringify({"method": "enqueue", "token": token, "videos": [{"type":video_type, "filename": filename, "resolve": resolve, "raw_url": url, "url": url}]})
 		$.post(base_url, data);
 		$( "#addToQueue" ).popup( "close" );
 		loadQueuePage();
@@ -57,6 +58,7 @@ $(document).ready(function() {
 			$('#queue_filename').val('')
 			$("input[type='radio']:first").attr("checked", "checked");
 			$("input[type='radio']").checkboxradio("refresh");
+			$("#queue_resolve_url").attr("checked",false).checkboxradio("refresh");
 		}
 	});
 	
