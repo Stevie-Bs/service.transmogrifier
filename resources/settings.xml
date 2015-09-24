@@ -16,7 +16,7 @@
 		<setting id="enable_webserver" type="bool" label="Enable Webserver" default="true"/>
 		<setting id="network_bind" type="labelenum" label="Network" values="All Subnets|Local Subnet|Localhost|" default="All Subnets" />
 		<setting label="Port" type="slider" id="control_port" default="8750" range="8000,1,8999" option="int" visible="!eq(-1,false)"/>
-		<setting id="auth_key" type="text" label="Auth Key" default="0c9d3e4b3b76e5793f7ca4fdc5725c08" visible="false"/>
+		<setting id="auth_token" type="text" default="" visible="false"/>
 		<setting id="auth_pin" type="text" label="Pin" default="5867"/>
 	</category>
 	<category label="Database">
