@@ -13,6 +13,7 @@ from dudehere.routines.vfs import VFSClass
 from resources.lib.common import *
 from resources.lib.database import *
 from resources.lib.transmogrifier import OutputHandler, Transmogrifier
+from Cookie import SimpleCookie
 vfs = VFSClass()
 
 def set_property(k, v):
@@ -93,7 +94,30 @@ class RequestHandler(BaseHTTPRequestHandler):
 					url = base64.b64decode(hash_url)
 					file_id = str(uuid.uuid4())
 					etag = hashlib.md5(url).hexdigest()
+					self.send_response(200)
+					self.send_header("Pragma", "public")
+					self.send_header("Expires", "0")
+					self.send_header("ETag",etag)
+					self.send_header("Accept-Ranges","bytes")
+					self.send_header("Cache-Control", "must-revalidate, post-check=0, pre-check=0")
+					self.send_header("Content-Type", "video/x-msvideo")
+					self.send_header("Connection", 'close')
+					self.send_header("Content-Disposition", 'attachment; filename="stream.avi"')
+					self.send_header("Set-Cookie", "file_id=" + file_id)
+					self.end_headers()
+					self.wfile.write(url)
 					TM = Transmogrifier(url, '', '', file_id, video_type='stream')
+					TM.get_target_info()
+					file_size = TM.total_bytes
+					current_byte = 0
+					TM.stream()
+					while True:
+						block, end_byte = TM.read_block(start_byte=current_byte)
+						current_byte = end_byte + 1
+						self.wfile.write(block)
+						if end_byte >= file_size:
+							break
+					'''TM = Transmogrifier(url, '', '', file_id, video_type='stream')
 					TM.get_target_info()
 					file_size = TM.total_bytes
 					print file_size
@@ -115,7 +139,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 						block, end_byte = TM.read_block(start_byte)
 						self.wfile.write(block)
 						if end_byte >= file_size:
-							break
+							break'''
 				#except:
 				#	self.send_error(400,'Bad Request')
 				#	return False			

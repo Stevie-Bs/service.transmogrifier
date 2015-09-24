@@ -5,10 +5,8 @@ import os
 import sys
 import math
 import xbmc,xbmcgui
-import pyxbmct.addonwindow as pyxbmct
-sys.path.append(os.path.join(xbmc.translatePath( "special://home/addons/script.module.pyxbmctmanager/" ), 'lib'))
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', 'lib'))
 from dudehere.routines import *
+from dudehere.routines.window import Window
 from dudehere.routines.vfs import VFSClass
 vfs = VFSClass()
 
@@ -30,7 +28,6 @@ def get_property(k):
 	return p
 
 def view_queue():
-	from pyxbmctmanager.window import Window
 
 	class QueueWindow(Window):
 		def __init__(self, title):

@@ -43,7 +43,7 @@ class OutputHandler():
 		self.__handle.write(block)
 		self.flush()
 
-	def queue_block(self, block, offset): 
+	def queue_block(self, block, offset):
 		self.__queue.put((block, offset), offset)
 
 	def process_queue(self):
@@ -104,14 +104,12 @@ class InputHandler():
 	
 	def __call(self, start_byte, end_byte):
 		r = 'bytes=%s-%s' % (start_byte, end_byte)
-		ADDON.log("Requesting remote bytes: %s" % r)
+		#ADDON.log("Requesting remote bytes: %s" % r)
 		#try:
 		req = urllib2.Request(self.__url, headers={"Range" : r})
 		f = urllib2.urlopen(req, timeout=3)
-		print f.getcode()
-		if f.getcode() == 206: return False
+		if f.getcode() != 206: return False
 		block = f.read(self.__block_size)
-		print len(block)
 			#f.close()
 		#except urllib2.URLError, e:
 		#ADDON.log("HTTP Error: %s" % e)
@@ -138,15 +136,15 @@ class Transmogrifier():
 		self.completed = []
 
 		
-		self.set_property('abort_all', "false")
-		self.set_property('threads', self.threads)
-		self.set_property('active_threads', self.active_threads)
-		self.set_property('cached_bytes', self.cached_bytes)
-		self.set_property('total_bytes', self.total_bytes)
-		self.set_property('filename', self.filename)
-		self.set_property('id', self.id)
-		self.set_property('file_id', self.file_id)
-		self.set_property('percent', 0)
+		#self.set_property('abort_all', "false")
+		#self.set_property('threads', self.threads)
+		#self.set_property('active_threads', self.active_threads)
+		#self.set_property('cached_bytes', self.cached_bytes)
+		#self.set_property('total_bytes', self.total_bytes)
+		#self.set_property('filename', self.filename)
+		#self.set_property('id', self.id)
+		#self.set_property('file_id', self.file_id)
+		#self.set_property('percent', 0)
 	
 	def check_abort(self):
 		return self.get_property('abort_all')
@@ -155,12 +153,12 @@ class Transmogrifier():
 		ADDON.log("Aborting Transmogrification...", 1)
 		ADDON.log("Cleaning Cache...", 1)
 		vfs.rm(self.output_file, quiet=True)
-		self.set_property('percent', 0)
-		self.set_property('cached_bytes', 0)
-		self.set_property('total_bytes', 'False')
-		self.set_property('id', '')
-		self.set_property('speed', '')
-		self.set_property('delta', '')
+		#self.set_property('percent', 0)
+		#self.set_property('cached_bytes', 0)
+		#self.set_property('total_bytes', 'False')
+		#self.set_property('id', '')
+		#self.set_property('speed', '')
+		#self.set_property('delta', '')
 		ADDON.log("Waiting to Transmogrify...",1)
 		
 	def set_property(self, k, v):
@@ -179,14 +177,14 @@ class Transmogrifier():
 		if not block: return block_number * -1
 		#if not cached:
 		offset_byte = block_number * self.block_size
-		print offset_byte
+		#print offset_byte
 		self.Output.queue_block(block, offset_byte)
 		self.cached_bytes += len(block)
-		percent, delta, kbs = self.calculate_progress()	
-		self.set_property('cached_bytes', self.cached_bytes)
-		self.set_property("percent", percent)
-		self.set_property("speed", kbs)
-		ADDON.log("Progress: %s%s %s/%s %s KBs" % (percent, '%', self.cached_bytes, self.total_bytes, kbs))		
+		#percent, delta, kbs = self.calculate_progress()	
+		#self.set_property('cached_bytes', self.cached_bytes)
+		#self.set_property("percent", percent)
+		#self.set_property("speed", kbs)
+		#ADDON.log("Progress: %s%s %s/%s %s KBs" % (percent, '%', self.cached_bytes, self.total_bytes, kbs))		
 		return block_number
 			
 		'''start_byte = block_number * self.block_size
@@ -248,11 +246,11 @@ class Transmogrifier():
 
 			self.Pool.joinAll()
 			self.processor.join()
-			percent, delta, kbs = self.calculate_progress()
-			self.set_property("percent", 100)
-			message = 'Completed %s in %s second(s) at %s KB/s.' % (self.filename, delta, kbs)
-			ADDON.log(message, 1)
-			ADDON.raise_notify(ADDON_NAME, message)
+			#percent, delta, kbs = self.calculate_progress()
+			#self.set_property("percent", 100)
+			#message = 'Completed %s in %s second(s) at %s KB/s.' % (self.filename, delta, kbs)
+			#ADDON.log(message, 1)
+			#ADDON.raise_notify(ADDON_NAME, message)
 		else:
 			ADDON.log('Invalid url, sorry!', 1)
 		
@@ -274,7 +272,8 @@ class Transmogrifier():
 		return block, end_byte
 
 	def get_block_number_from_byte(self, start_byte):
-		block_number = math.floor(start_byte / self.total_bytes)
+		block_number = int(math.floor(float(start_byte) / self.block_size))
+		print block_number
 		return block_number
 
 	def get_target_info(self):
@@ -283,8 +282,8 @@ class Transmogrifier():
 			self.headers = self.net.headers.items()	
 			self.total_bytes = int(self.net.headers["Content-Length"])
 			self.total_blocks = int(math.ceil(self.total_bytes / self.block_size))
-			self.set_property("total_bytes", self.total_bytes)
-			self.set_property("total_blocks", self.total_blocks)
+			#self.set_property("total_bytes", self.total_bytes)
+			#self.set_property("total_blocks", self.total_blocks)
 		except:
 			return False
 		if self.total_bytes is False :

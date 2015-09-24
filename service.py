@@ -19,7 +19,7 @@ from resources.lib.transmogrifier import OutputHandler, Transmogrifier
 
 
 class Service():
-	def __init__(self):
+	'''def __init__(self):
 		self._url = False 
 
 	def poll_queue(self):
@@ -42,7 +42,7 @@ class Service():
 			ADDON.raise_notify(ADDON_NAME, message)
 			return name, url, id, file_id, video_type
 		else:
-			return False, False, False, False, False
+			return False, False, False, False, False'''
 		
 	def start(self):
 		ADDON.log("Service starting...", 1)
@@ -61,7 +61,7 @@ class Service():
 		while True:
 			if monitor.waitForAbort(1):
 				break
-
+			'''
 			filename, url, id, file_id, video_type = self.poll_queue()
 			if id:
 				ADDON.log("Starting to Transmogrify: %s" % filename,1)
@@ -75,8 +75,8 @@ class Service():
 					DB.execute("UPDATE queue SET status=3 WHERE id=?", [self.id])
 				DB.commit()
 
-		if ADDON.get_setting('enable_webserver')=='true':
-			server.socket.close()
+		if ADDON.get_setting('enable_webserver')=='true':'''
+		server.socket.close()
 		ADDON.log("Service stopping...", 1)
 
 if __name__ == '__main__':
