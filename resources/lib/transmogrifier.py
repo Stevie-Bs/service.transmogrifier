@@ -6,7 +6,7 @@ from threading import Thread
 from dudehere.routines import *
 from dudehere.routines.threadpool import ThreadPool, MyPriorityQueue
 from resources.lib.common import *
-COMPLETED_BLOCKS = []
+
 class OutputHandler():
 	def __init__(self, video_type, filename, file_id, total_blocks):
 		self.__abort = False
@@ -43,7 +43,6 @@ class OutputHandler():
 		self.__handle.seek(offset, 0)
 		self.__handle.write(block)
 		self.flush()
-		COMPLETED_BLOCKS.append(block_number)
 
 	def queue_block(self, block, offset, block_number):
 		self.__queue.put((block, offset, block_number), offset)
@@ -75,13 +74,16 @@ class InputHandler():
 		self.__completed = []
 		self.__cache_file = vfs.join(CACHE_DIRECTORY, self.__file_id + '.temp')	
 	
-	def mark_complete(self, block_number):
-		self.__completed.append(block_number)
-	
-	def is_completed(self, block_number):
-		#return block_number in self.__completed	
-		return block_number in COMPLETED_BLOCKS
-	
+	def is_cached(self, block_number):
+		f = vfs.open(self.__cache_file, "r")
+		end_byte = self.__block_size * block_number + self.__block_size -1
+		f.seek(end_byte, 0)
+		if f.read(1):
+			f.close()
+			return True
+		else:
+			f.close()
+			return False
 	def read_cached_block(self, block_number):
 		f = vfs.open(self.__cache_file, "r")
 		start_byte = block_number * self.__block_size
@@ -98,14 +100,17 @@ class InputHandler():
 		return block
 		
 	def get_block(self, block_number):
-		cached = self.is_completed(block_number)
+		cached = self.is_cached(block_number)
+		#time.sleep(.3)
 		if cached:
+			ADDON.log("Reading cached block %s" % block_number)
 			return self.read_cached_block(block_number), cached
 		else:
+			ADDON.log("Reading remote block %s" % block_number)
 			return self.read_remote_block(block_number), cached
 		
 	def read_block(self, block_number):
-		cached = self.is_completed(block_number)
+		cached = self.is_cached(block_number)
 		if cached:
 			return self.read_cached_block(block_number)
 		else:
@@ -125,7 +130,6 @@ class InputHandler():
 		#	return False
 		return block
 		
-		
 class Transmogrifier():
 	def __init__(self, url, filename, id, file_id, video_type='tvshow'):
 		self.win = xbmcgui.Window(10000)
@@ -143,7 +147,7 @@ class Transmogrifier():
 		self.video_type = video_type
 		self.Pool = ThreadPool(NUMBER_THREADS)
 		self.completed = []
-
+		self.__aborting = False
 		
 		#self.set_property('abort_all', "false")
 		#self.set_property('threads', self.threads)
@@ -156,32 +160,28 @@ class Transmogrifier():
 		#self.set_property('percent', 0)
 	
 	def check_abort(self):
-		return self.get_property('abort_all')
+		return get_property('abort_id') == self.file_id or self.__aborting
 	
 	def abort_all(self):
-		ADDON.log("Aborting Transmogrification...", 1)
-		ADDON.log("Cleaning Cache...", 1)
-		vfs.rm(self.output_file, quiet=True)
-		#self.set_property('percent', 0)
-		#self.set_property('cached_bytes', 0)
-		#self.set_property('total_bytes', 'False')
-		#self.set_property('id', '')
-		#self.set_property('speed', '')
-		#self.set_property('delta', '')
-		ADDON.log("Waiting to Transmogrify...",1)
+		if self.__aborting is False:
+			self.Input.__abort = True
+			clear_property('abort_id')
+			ADDON.log("Aborting Transmogrification...", 1)
+			ADDON.log("Cleaning Cache...", 1)
+			#vfs.rm(self.output_file, quiet=True)
+			#self.set_property('percent', 0)
+			#self.set_property('cached_bytes', 0)
+			#self.set_property('total_bytes', 'False')
+			#self.set_property('id', '')
+			#self.set_property('speed', '')
+			#self.set_property('delta', '')
+			ADDON.log("Waiting to Transmogrify...",1)
+			self.__aborting = True
 		
-	def set_property(self, k, v):
-		k = "%s.%s" % (WINDOW_PREFIX, k)
-		self.win.setProperty(k, str(v))
-	
-	def get_property(self, k):
-		k = "%s.%s" % (WINDOW_PREFIX, k)
-		p = self.win.getProperty(k)
-		if p == 'false': return False
-		if p == 'true': return True
-		return p
-	
 	def transmogrify(self, block_number):
+		if self.check_abort(): 
+			self.abort_all()
+			return False
 		block, cached = self.Input.get_block(block_number)
 		if not block: return block_number * -1
 		#if not cached:
@@ -200,12 +200,14 @@ class Transmogrifier():
 
 		
 	def transmogrified(self, block_number):
+		if self.check_abort(): 
+			self.abort_all()
+			return False
 		if block_number < 0:
 			block_number = block_number * -1
 			self.Pool.queueTask(self.transmogrify, block_number, self.transmogrified)
 		self.active_threads -= 1
-		self.Input.mark_complete(block_number)
-		self.set_property("active_threads", self.active_threads)
+		#set_property("active_threads", self.active_threads)
 
 	def calculate_progress(self):
 		try:
@@ -247,6 +249,9 @@ class Transmogrifier():
 		for block_number in range(0, self.total_blocks+1):
 			self.Pool.queueTask(self.transmogrify, block_number, self.transmogrified)
 		return True
+
+	def seek(self):
+		self.Input = InputHandler(self.url, self.file_id, self.total_blocks, self.total_bytes)
 	
 	def read_block(self, start_byte=0):
 		end_byte = (start_byte + self.block_size) - 1
@@ -268,7 +273,7 @@ class Transmogrifier():
 			self.headers = self.net.headers.items()	
 			self.total_bytes = int(self.net.headers["Content-Length"])
 			self.total_blocks = int(math.ceil(self.total_bytes / self.block_size))
-			print "total blocks: %s" % self.total_blocks
+			ADDON.log("total blocks: %s" % self.total_blocks)
 			#self.set_property("total_bytes", self.total_bytes)
 			#self.set_property("total_blocks", self.total_blocks)
 		except:

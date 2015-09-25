@@ -9,6 +9,7 @@ import hashlib
 import urlresolver
 import json
 from threading import Thread
+#from multiprocessing import Pipe
 from dudehere.routines import *
 from dudehere.routines.threadpool import ThreadPool, MyPriorityQueue
 from BaseHTTPServer import HTTPServer
@@ -18,7 +19,27 @@ from resources.lib.server import RequestHandler
 from resources.lib.transmogrifier import OutputHandler, Transmogrifier
 
 
-class Service():
+class Service(xbmc.Player):
+	def __init__(self, *args, **kwargs):
+		xbmc.Player.__init__(self, *args, **kwargs)
+	
+	def onPlayBackStarted(self):
+		if get_property('streaming'):
+			ADDON.log("Now I'm playing file id: %s " % get_property('file_id'))
+	
+	def onPlayBackStopped(self):
+		if get_property('streaming'):
+			ADDON.log("Now I'm stopped")
+			ADDON.log("Abort: %s" % get_property('file_id'))
+			set_property("abort_id", get_property('file_id'))
+			clear_property('playing')
+			clear_property('file_id')
+			clear_property('streaming_started')
+
+	
+	def onPlayBackEnded(self):
+		self.onPlayBackStopped()
+		
 	'''def __init__(self):
 		self._url = False 
 
@@ -57,6 +78,7 @@ class Service():
 		server = HTTPServer((address, CONTROL_PORT), RequestHandler)
 		webserver = Thread(target=server.serve_forever)
 		webserver.start()
+		#self.listener =  Pipe()
 			
 		while True:
 			if monitor.waitForAbort(1):

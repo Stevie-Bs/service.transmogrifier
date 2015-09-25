@@ -46,9 +46,24 @@ class RequestHandler(BaseHTTPRequestHandler):
 		if mime == 'application/json':
 			content = json.dumps(content)
 		self.wfile.write(content)
+		self.wfile.flush()
+	
+	def do_HEAD(self):
+		arguments, data, path = self.process_cgi()
+		self.send_response(200)
+		self.send_header("Content-Type", "video/mp4")
+		self.send_header("Accept-Ranges","bytes")
+		file_id = arguments[3]
+		self.send_header("Set-Cookie", "file_id=" + file_id)
+		self.end_headers()
+
 	
 	def do_GET(self):
 		arguments, data, path = self.process_cgi()
+		print self.headers
+		cookies = {}
+		if 'cookie' in self.headers:
+			cookies = {e.split('=')[0]: e.split('=')[1] for e in self.headers['cookie'].split(';')}
 		try:
 			if arguments[1] == 'query':
 				if arguments[2] == 'log':
@@ -60,7 +75,6 @@ class RequestHandler(BaseHTTPRequestHandler):
 					contents = re.sub('<name>(.+?)</name>', '<name>******</name>', contents)
 					contents = re.sub('<user>(.+?)</user>', '<user>******</user>', contents)
 					contents = re.sub('<pass>(.+?)</pass>', '<pass>******</pass>', contents)
-					#self.do_Response(contents, 'text/plain')
 					self._send_response(contents, mime="text/plain")
 				elif arguments[2] == 'download':
 					if data['media'][0] == 'movie':
@@ -88,71 +102,64 @@ class RequestHandler(BaseHTTPRequestHandler):
 				else:
 					self.send_error(400,'Bad Request')
 			elif arguments[1] == 'stream':
-				#try:
-				if True:
-					#byte_range=self.headers.getheader("Range")
-					hash_url = arguments[2]
-					url = base64.b64decode(hash_url)
-					file_id = str(uuid.uuid4())
-					etag = hashlib.md5(url).hexdigest()
-					self.send_response(200)
-					self.send_header("Pragma", "public")
-					self.send_header("Expires", "0")
-					self.send_header("ETag",etag)
-					self.send_header("Accept-Ranges","bytes")
-					self.send_header("Cache-Control", "must-revalidate, post-check=0, pre-check=0")
-					self.send_header("Content-Type", "video/x-msvideo")
-					self.send_header("Connection", 'close')
-					self.send_header("Content-Disposition", 'attachment; filename="stream.avi"')
-					self.send_header("Set-Cookie", "file_id=" + file_id)
-					self.end_headers()
-					TM = Transmogrifier(url, '', '', file_id, video_type='stream')
-					TM.get_target_info()
-					file_size = TM.total_bytes
+				hash_url = arguments[2]
+				file_id = arguments[3]
+				url = base64.b64decode(hash_url)
+				#if 'file_id' in cookies:
+				#	file_id = cookies['file_id']
+				self.send_response(206)
+				self.send_header("Pragma", "no-cache")
+				self.send_header("Last-Modified","Wed, 21 Feb 2000 08:43:39 GMT")
+				self.send_header("Expires", "0")
+				self.send_header("ETag",file_id)
+				self.send_header("Accept-Ranges","bytes")
+				self.send_header("Cache-Control","public, must-revalidate")
+				self.send_header("Cache-Control","no-cache")
+				self.send_header("Content-Type", "video/video/mp4")
+				self.send_header("Features","seekable,stridable")
+				self.send_header("Connection", 'close')
+				self.send_header("client-id","12345")
+				self.send_header("Content-Disposition", 'inline; filename="stream.mp4"')
+				self.send_header("Set-Cookie", "file_id=" + file_id)
+				TM = Transmogrifier(url, '', '', file_id, video_type='stream')
+				TM.get_target_info()
+				file_size = TM.total_bytes
+				current_byte = 0
+				try:
+					range_reqeust = str(self.headers.getheader("Range"))
+					temp=range_reqeust.split("=")[1].split("-")
+					current_byte=int(temp[0])
+					end_byte = file_size - 1 if temp[1] == "" else temp[1]
+				except:
 					current_byte = 0
+					end_byte = file_size - 1
+				content_range = "%s-%s/%s" % (current_byte, end_byte, file_size)
+				print content_range
+				self.send_header("Content-Length", str(file_size))
+				self.send_header("Content-Range",content_range)
+				self.end_headers()
+				
+				if not get_property("stream_started"):
 					TM.stream()
-					#time.sleep(2)
-					#total = 0
-					#print byte_range
-					while True:
+					set_property("stream_started", "true")
+				else:
+					TM.seek()
+				while True:
+					try:
 						block, end_byte = TM.read_block(start_byte=current_byte)
-						#if block: print len(block)
 						if block is not False:
-							#total += len(block)
-							#self.wfile.write("%s - %s, %s = %s\n" % (current_byte, end_byte, len(block), total))
 							current_byte = end_byte + 1
-							
 							self.wfile.write(block)
 							if end_byte >= file_size:
 								break
 						else:
-							time.sleep(.1)	
-					'''TM = Transmogrifier(url, '', '', file_id, video_type='stream')
-					TM.get_target_info()
-					file_size = TM.total_bytes
-					print file_size
-					print url
-					self.send_response(200)
-					self.send_header("Pragma", "public")
-					self.send_header("Expires", "0")
-					self.send_header("ETag",etag)
-					self.send_header("Accept-Ranges","bytes")
-					self.send_header("Cache-Control", "must-revalidate, post-check=0, pre-check=0")
-					self.send_header("Content-Type", "video/x-msvideo")
-					self.send_header("Content-Length", str(file_size))
-					self.send_header("Content-Disposition", 'attachment; filename="stream.avi"')
-					self.send_header("Connection", 'close')
-					self.end_headers()
-					TM.stream()
-					start_byte = 0
-					while True:
-						block, end_byte = TM.read_block(start_byte)
-						self.wfile.write(block)
-						if end_byte >= file_size:
-							break'''
-				#except:
-				#	self.send_error(400,'Bad Request')
-				#	return False			
+							time.sleep(.1)
+					except Exception, e:
+						print e
+						break
+				del TM
+					#self.wfile.close()
+		
 			else:
 				if self.path=='/':
 					self.path='/index.html'
@@ -185,11 +192,15 @@ class RequestHandler(BaseHTTPRequestHandler):
 				self.end_headers()
 				self.wfile.write(f.read())
 				f.close()
+				self.wfile.flush()
+				self.wfile.close()
 				return True
 			return True
 		except IOError:
 			self.send_error(500,'Internal Server Error')
+			self.wfile.close()
 			return False
+		self.wfile.close()
 		
 	def do_POST(self):
 		parts = urlparse(self.path)
@@ -328,3 +339,5 @@ class RequestHandler(BaseHTTPRequestHandler):
 		if content_type == 'application/json':
 			content = json.dumps(content)
 		self.wfile.write(content)
+		self.wfile.flush()
+		self.wfile.close()
