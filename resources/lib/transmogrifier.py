@@ -6,7 +6,7 @@ from threading import Thread
 from dudehere.routines import *
 from dudehere.routines.threadpool import ThreadPool, MyPriorityQueue
 from resources.lib.common import *
-
+COMPLETED_BLOCKS = []
 class OutputHandler():
 	def __init__(self, video_type, filename, file_id, total_blocks):
 		self.__abort = False
@@ -38,20 +38,22 @@ class OutputHandler():
 	def close(self):
 		self.__handle.close()
 
-	def write_block(self, block, offset):
+	def write_block(self, block, offset, block_number):
+		global COMPLETED_BLOCKS
 		self.__handle.seek(offset, 0)
 		self.__handle.write(block)
 		self.flush()
+		COMPLETED_BLOCKS.append(block_number)
 
-	def queue_block(self, block, offset):
-		self.__queue.put((block, offset), offset)
+	def queue_block(self, block, offset, block_number):
+		self.__queue.put((block, offset, block_number), offset)
 
 	def process_queue(self):
 		while self.__block_counter < self.__total_blocks:
 			if self.__abort: break;
 			if self.__queue.empty() is False:
-				block,offset = self.__queue.get()
-				self.write_block(block, offset)
+				block,offset,block_number = self.__queue.get()
+				self.write_block(block, offset, block_number)
 				self.__block_counter += 1
 			else:
 				time.sleep(.1)
@@ -70,14 +72,15 @@ class InputHandler():
 		self.__block_size = BLOCK_SIZE
 		self.__total_blocks = total_blocks
 		self.__total_bytes = total_bytes
-		self.__cache_file = vfs.join(CACHE_DIRECTORY, self.__file_id + '.temp')	
 		self.__completed = []
+		self.__cache_file = vfs.join(CACHE_DIRECTORY, self.__file_id + '.temp')	
 	
 	def mark_complete(self, block_number):
 		self.__completed.append(block_number)
 	
 	def is_completed(self, block_number):
-		return block_number in self.__completed	
+		#return block_number in self.__completed	
+		return block_number in COMPLETED_BLOCKS
 	
 	def read_cached_block(self, block_number):
 		f = vfs.open(self.__cache_file, "r")
@@ -101,6 +104,12 @@ class InputHandler():
 		else:
 			return self.read_remote_block(block_number), cached
 		
+	def read_block(self, block_number):
+		cached = self.is_completed(block_number)
+		if cached:
+			return self.read_cached_block(block_number)
+		else:
+			return False
 	
 	def __call(self, start_byte, end_byte):
 		r = 'bytes=%s-%s' % (start_byte, end_byte)
@@ -178,7 +187,7 @@ class Transmogrifier():
 		#if not cached:
 		offset_byte = block_number * self.block_size
 		#print offset_byte
-		self.Output.queue_block(block, offset_byte)
+		self.Output.queue_block(block, offset_byte, block_number)
 		self.cached_bytes += len(block)
 		#percent, delta, kbs = self.calculate_progress()	
 		#self.set_property('cached_bytes', self.cached_bytes)
@@ -187,31 +196,6 @@ class Transmogrifier():
 		#ADDON.log("Progress: %s%s %s/%s %s KBs" % (percent, '%', self.cached_bytes, self.total_bytes, kbs))		
 		return block_number
 			
-		'''start_byte = block_number * self.block_size
-		end_byte = (start_byte + self.block_size) - 1
-		if end_byte > self.total_bytes: end_byte = self.total_bytes
-		r = 'bytes=%s-%s' % (start_byte, end_byte)
-		ADDON.log("Requesting Block %s/%s: %s" % ((block_number+1),self.total_blocks,r))
-		while True:
-			try:
-				req = urllib2.Request(self.url, headers={"Range" : r})
-				f = urllib2.urlopen(req, timeout=1)
-				if f.getcode() == 206: 
-					break
-				time.sleep(1)
-			except urllib2.URLError, e:
-				return block_number * -1
-		self.active_threads += 1
-		self.set_property("active_threads", self.active_threads)	
-		block = f.read(self.block_size)
-		self.Handler.queue_block(block, start_byte)
-		self.cached_bytes += len(block)
-		percent, delta, kbs = self.calculate_progress()
-		self.set_property('cached_bytes', self.cached_bytes)
-		self.set_property("percent", percent)
-		self.set_property("speed", kbs)
-		ADDON.log("Progress: %s%s %s/%s %s KBs" % (percent, '%', self.cached_bytes, self.total_bytes, kbs))		
-		return block_number'''
 	
 
 		
@@ -268,12 +252,14 @@ class Transmogrifier():
 		end_byte = (start_byte + self.block_size) - 1
 		if end_byte > self.total_bytes: end_byte = self.total_bytes
 		block_number = self.get_block_number_from_byte(start_byte)
-		block, cached = self.Input.get_block(block_number)
-		return block, end_byte
+		block = self.Input.read_block(block_number)
+		if block:
+			return block, end_byte
+		else:
+			return False, start_byte
 
 	def get_block_number_from_byte(self, start_byte):
 		block_number = int(math.floor(float(start_byte) / self.block_size))
-		print block_number
 		return block_number
 
 	def get_target_info(self):
@@ -282,6 +268,7 @@ class Transmogrifier():
 			self.headers = self.net.headers.items()	
 			self.total_bytes = int(self.net.headers["Content-Length"])
 			self.total_blocks = int(math.ceil(self.total_bytes / self.block_size))
+			print "total blocks: %s" % self.total_blocks
 			#self.set_property("total_bytes", self.total_bytes)
 			#self.set_property("total_blocks", self.total_blocks)
 		except:

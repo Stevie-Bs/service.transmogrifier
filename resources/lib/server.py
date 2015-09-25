@@ -90,6 +90,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 			elif arguments[1] == 'stream':
 				#try:
 				if True:
+					#byte_range=self.headers.getheader("Range")
 					hash_url = arguments[2]
 					url = base64.b64decode(hash_url)
 					file_id = str(uuid.uuid4())
@@ -105,18 +106,27 @@ class RequestHandler(BaseHTTPRequestHandler):
 					self.send_header("Content-Disposition", 'attachment; filename="stream.avi"')
 					self.send_header("Set-Cookie", "file_id=" + file_id)
 					self.end_headers()
-					self.wfile.write(url)
 					TM = Transmogrifier(url, '', '', file_id, video_type='stream')
 					TM.get_target_info()
 					file_size = TM.total_bytes
 					current_byte = 0
 					TM.stream()
+					#time.sleep(2)
+					#total = 0
+					#print byte_range
 					while True:
 						block, end_byte = TM.read_block(start_byte=current_byte)
-						current_byte = end_byte + 1
-						self.wfile.write(block)
-						if end_byte >= file_size:
-							break
+						#if block: print len(block)
+						if block is not False:
+							#total += len(block)
+							#self.wfile.write("%s - %s, %s = %s\n" % (current_byte, end_byte, len(block), total))
+							current_byte = end_byte + 1
+							
+							self.wfile.write(block)
+							if end_byte >= file_size:
+								break
+						else:
+							time.sleep(.1)	
 					'''TM = Transmogrifier(url, '', '', file_id, video_type='stream')
 					TM.get_target_info()
 					file_size = TM.total_bytes

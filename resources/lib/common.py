@@ -8,7 +8,7 @@ NUMBER_THREADS = int(ADDON.get_setting('thread_number'))
 CACHE_DIRECTORY = ADDON.get_setting('save_directory')
 MOVIE_DIRECTORY = vfs.join(CACHE_DIRECTORY, 'Movies')
 TVSHOW_DIRECTORY = vfs.join(CACHE_DIRECTORY, 'TV Shows')
-BLOCK_SIZE = 1024 * 1000
+BLOCK_SIZE = 1024 * 2000
 
 WINDOW_PREFIX = 'transmogrifier'
 WEB_ROOT = vfs.join(ROOT_PATH, 'resources/www/html')
