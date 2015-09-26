@@ -1,4 +1,5 @@
 import json
+import xbmcgui
 from dudehere.routines import *
 from dudehere.routines.vfs import VFSClass
 vfs = VFSClass()
@@ -31,3 +32,7 @@ def get_property(k):
 	if p == 'false': return False
 	if p == 'true': return True
 	return p
+
+def clear_property(k):
+	k = "%s.%s" % (WINDOW_PREFIX, k)
+	xbmcgui.Window(10000).clearProperty(k)

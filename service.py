@@ -9,6 +9,7 @@ import hashlib
 import urlresolver
 import json
 from threading import Thread
+#from multiprocessing import Pipe
 from dudehere.routines import *
 from dudehere.routines.threadpool import ThreadPool, MyPriorityQueue
 from BaseHTTPServer import HTTPServer
@@ -18,16 +19,34 @@ from resources.lib.server import RequestHandler
 from resources.lib.transmogrifier import OutputHandler, Transmogrifier
 
 
-class Service():
-	'''def __init__(self):
-		self._url = False 
+class Service(xbmc.Player):
+	def __init__(self, *args, **kwargs):
+		xbmc.Player.__init__(self, *args, **kwargs)
+	
+	def onPlayBackStarted(self):
+		if get_property('streaming'):
+			ADDON.log("Now I'm playing file id: %s " % get_property('file_id'))
+	
+	def onPlayBackStopped(self):
+		if get_property('streaming'):
+			ADDON.log("Now I'm stopped")
+			ADDON.log("Abort: %s" % get_property('file_id'))
+			set_property("abort_id", get_property('file_id'))
+			clear_property('playing')
+			clear_property('file_id')
+			clear_property('streaming_started')
+
+	
+	def onPlayBackEnded(self):
+		self.onPlayBackStopped()
+		
 
 	def poll_queue(self):
 		if ADDON.get_setting('enable_transmogrifier')=='false': return False, False, False, False, False
 		SQL = "SELECT filename, url, id, video_type, raw_url FROM queue WHERE status=1 ORDER BY priority, id ASC LIMIT 1"
 		row = DB.query(SQL)
 		if row:
-			file_id = str(uuid.uuid4())
+			file_id = hashlib.md5(url).hexdigest()
 			name = row[0]
 			url = row[1]
 			id = row[2]
@@ -42,7 +61,7 @@ class Service():
 			ADDON.raise_notify(ADDON_NAME, message)
 			return name, url, id, file_id, video_type
 		else:
-			return False, False, False, False, False'''
+			return False, False, False, False, False
 		
 	def start(self):
 		ADDON.log("Service starting...", 1)
@@ -57,11 +76,11 @@ class Service():
 		server = HTTPServer((address, CONTROL_PORT), RequestHandler)
 		webserver = Thread(target=server.serve_forever)
 		webserver.start()
+		#self.listener =  Pipe()
 			
 		while True:
 			if monitor.waitForAbort(1):
 				break
-			'''
 			filename, url, id, file_id, video_type = self.poll_queue()
 			if id:
 				ADDON.log("Starting to Transmogrify: %s" % filename,1)
@@ -74,8 +93,6 @@ class Service():
 				else:
 					DB.execute("UPDATE queue SET status=3 WHERE id=?", [self.id])
 				DB.commit()
-
-		if ADDON.get_setting('enable_webserver')=='true':'''
 		server.socket.close()
 		ADDON.log("Service stopping...", 1)
 
