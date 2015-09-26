@@ -1,13 +1,21 @@
+<<<<<<< HEAD
+.DS_Store
+=======
+>>>>>>> 0e1961fac9dbe1e15d94ed6543c3b7fa9db7d08b
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 
 # C extensions
 *.so
+<<<<<<< HEAD
+
+=======
 .settings
 .project
 .pydevproject
 .DS_Store
+>>>>>>> 0e1961fac9dbe1e15d94ed6543c3b7fa9db7d08b
 # Distribution / packaging
 .Python
 env/
@@ -17,6 +25,10 @@ dist/
 downloads/
 eggs/
 .eggs/
+<<<<<<< HEAD
+
+=======
+>>>>>>> 0e1961fac9dbe1e15d94ed6543c3b7fa9db7d08b
 lib64/
 parts/
 sdist/
