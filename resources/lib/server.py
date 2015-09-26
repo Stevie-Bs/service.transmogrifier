@@ -53,14 +53,16 @@ class RequestHandler(BaseHTTPRequestHandler):
 		self.send_response(200)
 		self.send_header("Content-Type", "video/mp4")
 		self.send_header("Accept-Ranges","bytes")
-		file_id = arguments[3]
-		self.send_header("Set-Cookie", "file_id=" + file_id)
+		#file_id = arguments[3]
+		#self.send_header("Set-Cookie", "file_id=" + file_id)
 		self.end_headers()
 
 	
 	def do_GET(self):
 		arguments, data, path = self.process_cgi()
 		print self.headers
+		print arguments
+		print data
 		cookies = {}
 		if 'cookie' in self.headers:
 			cookies = {e.split('=')[0]: e.split('=')[1] for e in self.headers['cookie'].split(';')}

@@ -40,15 +40,13 @@ class Service(xbmc.Player):
 	def onPlayBackEnded(self):
 		self.onPlayBackStopped()
 		
-	'''def __init__(self):
-		self._url = False 
 
 	def poll_queue(self):
 		if ADDON.get_setting('enable_transmogrifier')=='false': return False, False, False, False, False
 		SQL = "SELECT filename, url, id, video_type, raw_url FROM queue WHERE status=1 ORDER BY priority, id ASC LIMIT 1"
 		row = DB.query(SQL)
 		if row:
-			file_id = str(uuid.uuid4())
+			file_id = hashlib.md5(url).hexdigest()
 			name = row[0]
 			url = row[1]
 			id = row[2]
@@ -63,7 +61,7 @@ class Service(xbmc.Player):
 			ADDON.raise_notify(ADDON_NAME, message)
 			return name, url, id, file_id, video_type
 		else:
-			return False, False, False, False, False'''
+			return False, False, False, False, False
 		
 	def start(self):
 		ADDON.log("Service starting...", 1)
@@ -83,7 +81,6 @@ class Service(xbmc.Player):
 		while True:
 			if monitor.waitForAbort(1):
 				break
-			'''
 			filename, url, id, file_id, video_type = self.poll_queue()
 			if id:
 				ADDON.log("Starting to Transmogrify: %s" % filename,1)
@@ -96,8 +93,6 @@ class Service(xbmc.Player):
 				else:
 					DB.execute("UPDATE queue SET status=3 WHERE id=?", [self.id])
 				DB.commit()
-
-		if ADDON.get_setting('enable_webserver')=='true':'''
 		server.socket.close()
 		ADDON.log("Service stopping...", 1)
 
