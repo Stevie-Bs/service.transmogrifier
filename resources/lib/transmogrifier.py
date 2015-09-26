@@ -39,7 +39,6 @@ class OutputHandler():
 		self.__handle.close()
 
 	def write_block(self, block, offset, block_number):
-		global COMPLETED_BLOCKS
 		self.__handle.seek(offset, 0)
 		self.__handle.write(block)
 		self.flush()
@@ -119,15 +118,15 @@ class InputHandler():
 	def __call(self, start_byte, end_byte):
 		r = 'bytes=%s-%s' % (start_byte, end_byte)
 		#ADDON.log("Requesting remote bytes: %s" % r)
-		#try:
-		req = urllib2.Request(self.__url, headers={"Range" : r})
-		f = urllib2.urlopen(req, timeout=3)
-		if f.getcode() != 206: return False
-		block = f.read(self.__block_size)
+		try:
+			req = urllib2.Request(self.__url, headers={"Range" : r})
+			f = urllib2.urlopen(req, timeout=3)
+			if f.getcode() != 206: return False
+			block = f.read(self.__block_size)
 			#f.close()
-		#except urllib2.URLError, e:
-		#ADDON.log("HTTP Error: %s" % e)
-		#	return False
+		except urllib2.URLError, e:
+			ADDON.log("HTTP Error: %s" % e)
+			return False
 		return block
 		
 class Transmogrifier():
@@ -205,6 +204,7 @@ class Transmogrifier():
 			return False
 		if block_number < 0:
 			block_number = block_number * -1
+			print "requeue %s" % block_number
 			self.Pool.queueTask(self.transmogrify, block_number, self.transmogrified)
 		self.active_threads -= 1
 		#set_property("active_threads", self.active_threads)

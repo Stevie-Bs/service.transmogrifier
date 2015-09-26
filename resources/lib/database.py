@@ -9,7 +9,7 @@ if ADDON.get_setting('database_mysql')=='true':
 					`video_type` VARCHAR(10) NULL, 
 					`priority` INT NULL DEFAULT 10, 
 					`filename` VARCHAR(150) NOT NULL, 
-					`uuid` VARCHAR(45) NULL, 
+					`fileid` VARCHAR(45) NULL, 
 					`raw_url` VARCHAR(225) NULL, 
 					`url` VARCHAR(225) NULL, 
 					`status` TINYINT NULL, 
@@ -34,7 +34,7 @@ else:
 					"priority" INTEGER DEFAULT (10), 
 					"video_type" TEXT, 
 					"filename" TEXT, 
-					"uuid" TEXT, 
+					"fileid" TEXT, 
 					"raw_url" TEXT, 
 					"url" TEXT, 
 					"status" INTEGER DEFAULT (1)

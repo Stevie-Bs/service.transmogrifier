@@ -46,16 +46,16 @@ class Service(xbmc.Player):
 		SQL = "SELECT filename, url, id, video_type, raw_url FROM queue WHERE status=1 ORDER BY priority, id ASC LIMIT 1"
 		row = DB.query(SQL)
 		if row:
-			file_id = hashlib.md5(url).hexdigest()
 			name = row[0]
 			url = row[1]
-			id = row[2]
 			video_type = row[3]
+			id = row[2]
 			raw_url = row[4]
+			file_id = hashlib.md5(url).hexdigest()
 			if raw_url and not url:
 				source = urlresolver.HostedMediaFile(url=raw_url)
 				url = source.resolve() if source else None
-			DB.execute("UPDATE queue SET status=2, uuid=? WHERE id=?", [file_id, id])
+			DB.execute("UPDATE queue SET status=2, fileid=? WHERE id=?", [file_id, id])
 			DB.commit()
 			message = "Queued: %s" % name
 			ADDON.raise_notify(ADDON_NAME, message)

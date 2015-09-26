@@ -31,19 +31,42 @@ def view_queue():
 
 	class QueueWindow(Window):
 		def __init__(self, title):
-			super(self.__class__,self).__init__(title,width=500, height=280, columns=3, rows=5)
+			super(self.__class__,self).__init__(title,width=800, height=500, columns=5, rows=10)
 			self.draw()
 		
 		def set_info_controls(self):
-			import platform
+			label = self.create_label("File:")
+			self.add_label(label, 0, 0, pad_x=15, pad_y=10)
+			label = self.create_label("Status:")
+			self.add_label(label, 1, 0, pad_x=15, pad_y=10)
+			label = self.create_label("Progress:")
+			self.add_label(label, 2, 0, pad_x=15, pad_y=10)
+			
+			label = self.create_label("Size:")
+			self.add_label(label, 0, 3, pad_x=15, pad_y=10)
+			
+			label = self.create_label("Priority:")
+			self.add_label(label, 1, 3, pad_x=15, pad_y=10)
+			
+			self.create_progress_bar('progress')
+			self.add_object('progress', 2,1,columnspan=4, pad_y=14)
+			
+			items = ["file 1", "file 2"]
+			self.create_list('queue')
+			self.add_object('queue', 3,0,7,5)
+			self.add_list_items('queue', items, 0, allow_multiple=False, allow_toggle=False)
+			
+			'''import platform
 			hostname = platform.node()
 			address = '[B][COLOR blue]http://%s:%s[/COLOR][/B]' % (hostname, ADDON.get_setting('control_port'))
 			self.add_label(self.create_label("This is not yet implemented.", alignment=2, font="font14"), 0,0,columnspan=3)
 			self.add_label(self.create_label("Go to the web service address for management.", alignment=2), 1,0,columnspan=3)
 			self.add_label(self.create_label(address, alignment=2), 2,0,columnspan=3)
 			
+			'''
+			
 			self.create_button('close', 'Close')
-			self.add_object("close", 4, 1)
+			self.add_object("close", 9, 1)
 			self.set_object_event('action', 'close', self.close)
 			
 	queue = QueueWindow('%s Version: %s' % (ADDON_NAME, VERSION))
