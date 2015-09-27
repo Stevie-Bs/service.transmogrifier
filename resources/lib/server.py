@@ -63,9 +63,9 @@ class RequestHandler(BaseHTTPRequestHandler):
 		print self.headers
 		print arguments
 		print data
-		cookies = {}
-		if 'cookie' in self.headers:
-			cookies = {e.split('=')[0]: e.split('=')[1] for e in self.headers['cookie'].split(';')}
+		#cookies = {}
+		#if 'cookie' in self.headers:
+		#	cookies = {e.split('=')[0]: e.split('=')[1] for e in self.headers['cookie'].split(';')}
 		try:
 			if arguments[1] == 'query':
 				if arguments[2] == 'log':
@@ -123,7 +123,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 				self.send_header("client-id","12345")
 				self.send_header("Content-Disposition", 'inline; filename="stream.mp4"')
 				self.send_header("Set-Cookie", "file_id=" + file_id)
-				TM = Transmogrifier(url, '', '', file_id, video_type='stream')
+				TM = Transmogrifier(url, '', '', '', file_id, video_type='stream')
 				TM.get_target_info()
 				file_size = TM.total_bytes
 				current_byte = 0
@@ -227,11 +227,12 @@ class RequestHandler(BaseHTTPRequestHandler):
 				if data['token'] in VALID_TOKENS: self.do_Response({'status': 200, 'message': 'success', 'method': data['method']})
 				else: self.do_Response({'status': 401, 'message': 'Unauthorized', 'method': data['method']})
 				return
-			
+			'''
 			if data['token'] not in VALID_TOKENS:
 				self.send_error(401,'Unauthorized')
 				return
-
+			'''
+			
 			if data['method'] == 'enqueue':
 				try:
 					count = len(data['videos'])
@@ -284,7 +285,6 @@ class RequestHandler(BaseHTTPRequestHandler):
 							"cached_bytes": get_property('cached_bytes'),
 							"total_bytes": get_property('total_bytes'),
 							"percent": get_property('percent'),
-							"active_threads": get_property('active_threads'),
 							"speed": get_property('speed'),
 					}
 					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'progress': progress})

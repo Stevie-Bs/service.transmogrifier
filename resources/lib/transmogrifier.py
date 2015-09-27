@@ -64,7 +64,16 @@ class OutputHandler():
 		
 
 class InputHandler():
-	def __init__(self, url, file_id, total_blocks, total_bytes):
+	def __init__(self, url, raw_url, file_id, total_blocks, total_bytes):
+		self.__headers = {
+			'Connection': 'keep-alive',
+			'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.93 Safari/537.36',
+			'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
+	  		'Accept': 'image/webp,image/*,*/*;q=0.8',
+    		'Accept-Language': 'en-us,en;q=0.5',
+    		'Accept-Encoding': 'gzip, deflate, sdch',
+    		'Referrer': raw_url
+		}
 		self.__url = url
 		self.__file_id = file_id
 		self.__block_size = BLOCK_SIZE
@@ -113,13 +122,16 @@ class InputHandler():
 		if cached:
 			return self.read_cached_block(block_number)
 		else:
+			# need to reprioritize queue here if delta block is greater then allowed
 			return False
 	
 	def __call(self, start_byte, end_byte):
 		r = 'bytes=%s-%s' % (start_byte, end_byte)
 		#ADDON.log("Requesting remote bytes: %s" % r)
 		try:
-			req = urllib2.Request(self.__url, headers={"Range" : r})
+			headers = self.__headers
+			headers["Range"] = r
+			req = urllib2.Request(self.__url, headers=headers)
 			f = urllib2.urlopen(req, timeout=3)
 			if f.getcode() != 206: return False
 			block = f.read(self.__block_size)
@@ -130,7 +142,7 @@ class InputHandler():
 		return block
 		
 class Transmogrifier():
-	def __init__(self, url, filename, id, file_id, video_type='tvshow'):
+	def __init__(self, url, raw_url, filename, file_id, video_type='tvshow'):
 		self.win = xbmcgui.Window(10000)
 		self.threads = NUMBER_THREADS
 		self.block_size = BLOCK_SIZE
@@ -138,25 +150,17 @@ class Transmogrifier():
 		self.total_blocks = 0
 		self.active_threads = 0
 		self.cached_bytes = 0
+		self.cached_blocks = 0
 		self.total_bytes = False
 		self.url = url
 		self.filename = filename
-		self.id = id
+		self.raw_url = raw_url
 		self.file_id = file_id
 		self.video_type = video_type
 		self.Pool = ThreadPool(NUMBER_THREADS)
 		self.completed = []
 		self.__aborting = False
 		
-		#self.set_property('abort_all', "false")
-		#self.set_property('threads', self.threads)
-		#self.set_property('active_threads', self.active_threads)
-		#self.set_property('cached_bytes', self.cached_bytes)
-		#self.set_property('total_bytes', self.total_bytes)
-		#self.set_property('filename', self.filename)
-		#self.set_property('id', self.id)
-		#self.set_property('file_id', self.file_id)
-		#self.set_property('percent', 0)
 	
 	def check_abort(self):
 		return get_property('abort_id') == self.file_id or self.__aborting
@@ -165,15 +169,10 @@ class Transmogrifier():
 		if self.__aborting is False:
 			self.Input.__abort = True
 			clear_property('abort_id')
+			clear_property(self.file_id +'.status')
 			ADDON.log("Aborting Transmogrification...", 1)
 			ADDON.log("Cleaning Cache...", 1)
-			#vfs.rm(self.output_file, quiet=True)
-			#self.set_property('percent', 0)
-			#self.set_property('cached_bytes', 0)
-			#self.set_property('total_bytes', 'False')
-			#self.set_property('id', '')
-			#self.set_property('speed', '')
-			#self.set_property('delta', '')
+			#vfs.rm(self.output_file, quiet=True)	# should I remove the cached file?
 			ADDON.log("Waiting to Transmogrify...",1)
 			self.__aborting = True
 		
@@ -183,16 +182,14 @@ class Transmogrifier():
 			return False
 		block, cached = self.Input.get_block(block_number)
 		if not block: return block_number * -1
-		#if not cached:
-		offset_byte = block_number * self.block_size
-		#print offset_byte
-		self.Output.queue_block(block, offset_byte, block_number)
+		if not cached:
+			offset_byte = block_number * self.block_size
+			self.Output.queue_block(block, offset_byte, block_number)
 		self.cached_bytes += len(block)
-		#percent, delta, kbs = self.calculate_progress()	
-		#self.set_property('cached_bytes', self.cached_bytes)
-		#self.set_property("percent", percent)
-		#self.set_property("speed", kbs)
-		#ADDON.log("Progress: %s%s %s/%s %s KBs" % (percent, '%', self.cached_bytes, self.total_bytes, kbs))		
+		percent, delta, kbs = self.calculate_progress()
+		self.cached_blocks += 1
+		set_property(self.file_id +'.status', json.dumps({'total_bytes': self.total_bytes, 'cached_bytes': self.cached_bytes, 'cached_blocks': self.cached_blocks, 'total_blocks': self.total_blocks, 'percent': percent, 'speed': kbs}))
+		ADDON.log("Progress: %s%s %s/%s %s KBs" % (percent, '%', self.cached_bytes, self.total_bytes, kbs))		
 		return block_number
 			
 	
@@ -223,7 +220,7 @@ class Transmogrifier():
 		valid = self.get_target_info()
 		if valid:
 			self.Output = OutputHandler(self.video_type, self.filename, self.file_id, self.total_blocks )
-			self.Input = InputHandler(self.url, self.file_id, self.total_blocks, self.total_bytes)
+			self.Input = InputHandler(self.url, self.raw_url, self.file_id, self.total_blocks, self.total_bytes)
 			self.processor = Thread(target=self.Output.process_queue)
 			self.processor.start()
 			self.started = time.time()
@@ -232,11 +229,11 @@ class Transmogrifier():
 
 			self.Pool.joinAll()
 			self.processor.join()
-			#percent, delta, kbs = self.calculate_progress()
-			#self.set_property("percent", 100)
-			#message = 'Completed %s in %s second(s) at %s KB/s.' % (self.filename, delta, kbs)
-			#ADDON.log(message, 1)
-			#ADDON.raise_notify(ADDON_NAME, message)
+			percent, delta, kbs = self.calculate_progress()
+			set_property(self.file_id +'.status', json.dumps({'total_bytes': self.total_bytes, 'cached_bytes': self.cached_bytes, 'cached_blocks': self.total_blocks, 'total_blocks': self.total_blocks, 'percent': 100, 'speed': kbs}))
+			message = 'Completed %s in %s second(s) at %s KB/s.' % (self.filename, delta, kbs)
+			ADDON.log(message, 1)
+			ADDON.raise_notify(ADDON_NAME, message)
 		else:
 			ADDON.log('Invalid url, sorry!', 1)
 		
@@ -274,8 +271,7 @@ class Transmogrifier():
 			self.total_bytes = int(self.net.headers["Content-Length"])
 			self.total_blocks = int(math.ceil(self.total_bytes / self.block_size))
 			ADDON.log("total blocks: %s" % self.total_blocks)
-			#self.set_property("total_bytes", self.total_bytes)
-			#self.set_property("total_blocks", self.total_blocks)
+			set_property(self.file_id +'.status', json.dumps({'total_bytes': self.total_bytes, 'cached_bytes': self.cached_bytes, 'cached_blocks': 0, 'total_blocks': self.total_blocks, 'percent': 0, 'speed': 0}))
 		except:
 			return False
 		if self.total_bytes is False :

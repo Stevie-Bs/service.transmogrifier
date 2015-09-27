@@ -59,15 +59,14 @@ class Service(xbmc.Player):
 			DB.commit()
 			message = "Queued: %s" % name
 			ADDON.raise_notify(ADDON_NAME, message)
-			return name, url, id, file_id, video_type
+			return name, url, raw_url, id, file_id, video_type
 		else:
-			return False, False, False, False, False
+			return False, False, False, False, False, False
 		
 	def start(self):
 		ADDON.log("Service starting...", 1)
 		monitor = xbmc.Monitor()
 		ADDON.log("Waiting to Transmogrify...",1)
-	
 		if ADDON.get_setting('network_bind') == 'Localhost':
 			address = "127.0.0.1"
 		else:
@@ -81,12 +80,12 @@ class Service(xbmc.Player):
 		while True:
 			if monitor.waitForAbort(1):
 				break
-			filename, url, id, file_id, video_type = self.poll_queue()
+			filename, url, raw_url, id, file_id, video_type = self.poll_queue()
 			if id:
 				ADDON.log("Starting to Transmogrify: %s" % filename,1)
 				self.id=id
 				started = time.time()
-				TM = Transmogrifier(url, filename, id, file_id, video_type=video_type)
+				TM = Transmogrifier(url, raw_url, filename, file_id, video_type=video_type)
 				TM.start()
 				if get_property("abort_all")=="true":
 					DB.execute("UPDATE queue SET status=0 WHERE id=?", [self.id])
