@@ -1,6 +1,7 @@
 var base_url = '/api.json'
 var __queue_poll__ = false;
 var __id__ = false;
+var __fileid__ = false;
 var __file__ = ''
 var __files__ = []
 function notify(text) {

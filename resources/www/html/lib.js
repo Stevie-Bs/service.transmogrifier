@@ -132,6 +132,9 @@ var loadQueuePage = function() {
 		html = ''
 		$.each(json['queue'], function(index){
 			row = json['queue'][index]
+			if (row[3] == 2) {
+				__fileid__ = row[5]
+			}
 			el = '<li class="queueListItem" value="'
 			el +=row[0]+'">'
 			el += '<a href="#queueContext" data-rel="popup" data-transition="pop" data-position-to="origin">'
@@ -164,18 +167,20 @@ var loadQueuePage = function() {
 var poll_queue = function() {
 	setTimeout(function() {
 		if (__queue_poll__==true) {
-			data = JSON.stringify({"method": "progress", "token": token})
+			data = JSON.stringify({"method": "progress", "token": token, "fileid": __fileid__})
 			$.post(base_url, data, function(json) {
-				details = "{0} of {1} at {2}KBs in {3} threads".format(
+				details = "{0} of {1} at {2}KBs in {3}/{4} blocks".format(
 					format_size(json['progress']['cached_bytes']), 
 					format_size(json['progress']['total_bytes']),
 					json['progress']['speed'],
-					json['progress']['active_threads']
+					json['progress']['cached_blocks'],
+					json['progress']['total_blocks']
 				);
+				percent = json['progress']['percent']
 				$('#queue_progress_' + json['progress']['id']).css("width", json['progress']['percent'] +"%");
 				$('#queue_progress_detail_' + json['progress']['id']).css('visibility', 'visible');
 				$('#queue_progress_detail_' + json['progress']['id']).text(details)
-				if (data.percent == 100) {
+				if (percent == 100) {
 					$('#queue_progress_' + json['progress']['id']).css("background", 'blue');
 					$('#queue_progress_detail_' + json['progress']['id']).text('')
 					$('#queue_progress_detail_' + json['progress']['id']).css('visibility', 'hidden');

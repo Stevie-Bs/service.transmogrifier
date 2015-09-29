@@ -5,8 +5,10 @@ import os
 import sys
 import math
 import xbmc,xbmcgui
+from threading import Thread
 from dudehere.routines import *
 from dudehere.routines.window import Window
+from dudehere.routines.transmogrifier import TransmogrifierAPI
 from dudehere.routines.vfs import VFSClass
 vfs = VFSClass()
 
@@ -31,10 +33,12 @@ def get_property(k):
 	return p
 
 def view_queue():
+	abort_poll = False
+	TM = TransmogrifierAPI()
 	class ContextWindow(Window):
 		def __init__(self, title):
 			super(self.__class__,self).__init__(title,width=250, height=300, columns=1, rows=3)
-		
+			self.file_id = None
 		def event(self):
 			global CONTEX_ACTION
 			obj = self.getFocus()
@@ -42,7 +46,7 @@ def view_queue():
 			self.close()
 		
 		def set_info_controls(self):
-			items = ["Abort", "Remove", "Pause", "Resume"]
+			items = ["Requeue", "Abort", "Remove", "Pause", "Resume"]
 			self.create_list('dialog')
 			self.add_object('dialog', 0,0,5,1)
 			self.add_list_items('dialog', items, selectable=False, call_back=self.event)
@@ -51,9 +55,11 @@ def view_queue():
 	class QueueWindow(Window):
 		def __init__(self, title):
 			super(self.__class__,self).__init__(title,width=800, height=500, columns=5, rows=10)
-			self.draw()
+			self.draw()	
 		
 		def set_info_controls(self):
+			
+			
 			label = self.create_label("File:")
 			self.add_label(label, 0, 0, pad_x=15, pad_y=10)
 			
@@ -84,26 +90,48 @@ def view_queue():
 			self.create_progress_bar('progress')
 			self.add_object('progress', 2, 1, columnspan=4, pad_y=14)
 			
-			queue = [
+			queue = TM.get_queue()
+			self.queue_data = queue['queue']
+			queue = queue['queue']
+			
+			
+			'''queue = [
 					["tvshow 1", "tvshow", "tvshow1.avi", 1, 42, '512 mb'],
 					["tvshow 2", "tvshow", "tvshow2.avi", 0, 0, '546 mb'],
 					["tvshow 3", "tvshow", "tvshow3.avi", 0, 0, '546 mb'],
 					["movie 1", "movie", "movie1.avi", 0, 0, '1516 mb'],
-			]
+			]'''
+			
+			
 			
 			def show_status():
 				obj = self.getFocus()
+				for index in xrange(obj.size()):
+					if index == int(obj.getSelectedItem().getProperty('index')):
+						if obj.getListItem(index).getLabel2() == '':
+							obj.getListItem(index).setLabel2(obj.getListItem(index).getLabel())
+							obj.getListItem(index).setLabel('[B][COLOR yellow]' + obj.getListItem(index).getLabel2() + '[/COLOR][/B]')
+					else:
+						if obj.getListItem(index).getLabel2() != '':	
+							obj.getListItem(index).setLabel(obj.getListItem(index).getLabel2())
+							obj.getListItem(index).setLabel2('')
+							
 				index = int(obj.getSelectedItem().getProperty('index'))
 				self.priority.setLabel(str(index+1))
 				self.filename.setLabel(queue[index][2])
-				self.size.setLabel(queue[index][5])
+				
 				if queue[index][3] == 1:
-					status = 'active'
-					percent = float(queue[index][4]) / 100
-					self.update_progress_bar('progress', percent, '1.4 MB/s')
-				else:
-					self.update_progress_bar('progress', 0, '')
 					status = 'pending'
+					#percent = float(queue[index][4]) / 100
+					#self.update_progress_bar('progress', percent, '1.4 MB/s')
+				elif queue[index][3] == 2:
+					status = 'active'
+				elif queue[index][3] == 3:
+					status = 'completed'
+					self.file_id = queue[index][5]
+					self.id = queue[index][0]
+				else:
+					status = 'failed'
 				self.status.setLabel(status)	
 				
 			def show_context():
@@ -111,16 +139,21 @@ def view_queue():
 					global CONTEX_ACTION
 					obj = self.getFocus()
 					index = int(obj.getSelectedItem().getProperty('index'))
-					obj.getSelectedItem().setLabel2(obj.getSelectedItem().getLabel())
-					obj.getSelectedItem().setLabel('[B][COLOR yellow]' + obj.getSelectedItem().getLabel2() + '[/COLOR][/B]')
+					if obj.getSelectedItem().getLabel2() == '': 
+						obj.getSelectedItem().setLabel2(obj.getSelectedItem().getLabel())
+						obj.getSelectedItem().setLabel('[B][COLOR yellow]' + obj.getSelectedItem().getLabel2() + '[/COLOR][/B]')
 					CONTEX_ACTION = None
-					context = ContextWindow(queue[index][0])
+					context = ContextWindow(queue[index][2])
 					context.show()
 					obj.getSelectedItem().setLabel(obj.getSelectedItem().getLabel2())
 					obj.getSelectedItem().setLabel2('')
+					if index==0:
+						TM.restart(self.queue_data[index][0])
+					elif index==1:
+						TM.restart(self.queue_data[index][5])
 				except: pass
 			
-			items = [item[0] for item in queue]
+			items = [item[2] for item in queue]
 			self.create_list('queue')
 			self.add_object('queue', 3,1,7,4)
 			self.add_list_items('queue', items, selectable=False, call_back=show_status)
@@ -137,8 +170,29 @@ def view_queue():
 			self.set_object_event('action', 'close', self.close)
 			
 	queue = QueueWindow('%s Version: %s' % (ADDON_NAME, VERSION))
+	queue.file_id = None
 	queue.set_object_event("focus", "queue")
+	def poll_queue():
+		while True:
+			if abort_poll: break
+			if queue.file_id is not None:
+				progress = TM.get_progress(queue.file_id)
+				progress = progress['progress']
+				print progress
+				if progress['id'] != 0:
+					if not progress['percent'] : progress['percent'] = 0
+					if not progress['speed'] : progress['speed'] = 'calculating...'
+					display = "%s bytes of %s at %s kbs" % (progress['cached_bytes'], progress['total_bytes'], progress['speed'])
+					queue.update_progress_bar('progress', float(progress['percent'])/100, display)
+					queue.size.setLabel(str(progress['total_bytes']))
+				else:
+					queue.update_progress_bar('progress', 0, '')
+					queue.size.setLabel('')
+			xbmc.sleep(1000)
+	monitor = Thread(target=poll_queue)
+	monitor.start()
 	queue.show()
+	abort_poll = True
 
 	
 args = ADDON.parse_query(sys.argv[2])

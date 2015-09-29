@@ -109,7 +109,7 @@ class InputHandler():
 		
 	def get_block(self, block_number):
 		cached = self.is_cached(block_number)
-		#time.sleep(.3)
+		time.sleep(.5)
 		if cached:
 			ADDON.log("Reading cached block %s" % block_number)
 			return self.read_cached_block(block_number), cached
@@ -142,7 +142,7 @@ class InputHandler():
 		return block
 		
 class Transmogrifier():
-	def __init__(self, url, raw_url, filename, file_id, video_type='tvshow'):
+	def __init__(self, id, url, raw_url, filename, file_id, video_type='tvshow'):
 		self.win = xbmcgui.Window(10000)
 		self.threads = NUMBER_THREADS
 		self.block_size = BLOCK_SIZE
@@ -152,6 +152,7 @@ class Transmogrifier():
 		self.cached_bytes = 0
 		self.cached_blocks = 0
 		self.total_bytes = False
+		self.id = id
 		self.url = url
 		self.filename = filename
 		self.raw_url = raw_url
@@ -188,7 +189,7 @@ class Transmogrifier():
 		self.cached_bytes += len(block)
 		percent, delta, kbs = self.calculate_progress()
 		self.cached_blocks += 1
-		set_property(self.file_id +'.status', json.dumps({'total_bytes': self.total_bytes, 'cached_bytes': self.cached_bytes, 'cached_blocks': self.cached_blocks, 'total_blocks': self.total_blocks, 'percent': percent, 'speed': kbs}))
+		set_property(self.file_id +'.status', json.dumps({'id': self.id, 'total_bytes': self.total_bytes, 'cached_bytes': self.cached_bytes, 'cached_blocks': self.cached_blocks, 'total_blocks': self.total_blocks, 'percent': percent, 'speed': kbs}))
 		ADDON.log("Progress: %s%s %s/%s %s KBs" % (percent, '%', self.cached_bytes, self.total_bytes, kbs))		
 		return block_number
 			
@@ -230,7 +231,7 @@ class Transmogrifier():
 			self.Pool.joinAll()
 			self.processor.join()
 			percent, delta, kbs = self.calculate_progress()
-			set_property(self.file_id +'.status', json.dumps({'total_bytes': self.total_bytes, 'cached_bytes': self.cached_bytes, 'cached_blocks': self.total_blocks, 'total_blocks': self.total_blocks, 'percent': 100, 'speed': kbs}))
+			clear_property(self.file_id +'.status')
 			message = 'Completed %s in %s second(s) at %s KB/s.' % (self.filename, delta, kbs)
 			ADDON.log(message, 1)
 			ADDON.raise_notify(ADDON_NAME, message)
@@ -271,7 +272,7 @@ class Transmogrifier():
 			self.total_bytes = int(self.net.headers["Content-Length"])
 			self.total_blocks = int(math.ceil(self.total_bytes / self.block_size))
 			ADDON.log("total blocks: %s" % self.total_blocks)
-			set_property(self.file_id +'.status', json.dumps({'total_bytes': self.total_bytes, 'cached_bytes': self.cached_bytes, 'cached_blocks': 0, 'total_blocks': self.total_blocks, 'percent': 0, 'speed': 0}))
+			set_property(self.file_id +'.status', json.dumps({'id': self.id, 'total_bytes': self.total_bytes, 'cached_bytes': self.cached_bytes, 'cached_blocks': 0, 'total_blocks': self.total_blocks, 'percent': 0, 'speed': 0}))
 		except:
 			return False
 		if self.total_bytes is False :

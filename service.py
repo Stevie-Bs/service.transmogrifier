@@ -85,7 +85,7 @@ class Service(xbmc.Player):
 				ADDON.log("Starting to Transmogrify: %s" % filename,1)
 				self.id=id
 				started = time.time()
-				TM = Transmogrifier(url, raw_url, filename, file_id, video_type=video_type)
+				TM = Transmogrifier(id, url, raw_url, filename, file_id, video_type=video_type)
 				TM.start()
 				if get_property("abort_all")=="true":
 					DB.execute("UPDATE queue SET status=0 WHERE id=?", [self.id])

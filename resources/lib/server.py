@@ -60,9 +60,9 @@ class RequestHandler(BaseHTTPRequestHandler):
 	
 	def do_GET(self):
 		arguments, data, path = self.process_cgi()
-		print self.headers
-		print arguments
-		print data
+		#print self.headers
+		#print arguments
+		#print data
 		#cookies = {}
 		#if 'cookie' in self.headers:
 		#	cookies = {e.split('=')[0]: e.split('=')[1] for e in self.headers['cookie'].split(';')}
@@ -123,7 +123,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 				self.send_header("client-id","12345")
 				self.send_header("Content-Disposition", 'inline; filename="stream.mp4"')
 				self.send_header("Set-Cookie", "file_id=" + file_id)
-				TM = Transmogrifier(url, '', '', '', file_id, video_type='stream')
+				TM = Transmogrifier(0, url, '', '', '', file_id, video_type='stream')
 				TM.get_target_info()
 				file_size = TM.total_bytes
 				current_byte = 0
@@ -213,6 +213,9 @@ class RequestHandler(BaseHTTPRequestHandler):
 			params = cgi.parse_qs(query, keep_blank_values=True)
 			self.data_string = self.rfile.read(int(self.headers['Content-Length']))
 			data = json.loads(self.data_string)
+			#print self.headers
+			#print params
+			#print data
 			#print VALID_TOKENS
 			if data['method'] == 'authorize':
 				if str(data['pin']) == ADDON.get_setting('auth_pin'):
@@ -280,36 +283,34 @@ class RequestHandler(BaseHTTPRequestHandler):
 					self.send_error(500,'Internal Server Error')
 			elif data['method'] == 'progress':
 				try:
-					progress = {
-							"id": get_property('id'), 
-							"cached_bytes": get_property('cached_bytes'),
-							"total_bytes": get_property('total_bytes'),
-							"percent": get_property('percent'),
-							"speed": get_property('speed'),
-					}
+					file_id = data['fileid']
+					progress = json.loads(get_property(file_id +'.status'))
+					print progress
 					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'progress': progress})
 				except:
-						self.send_error(500,'Internal Server Error')		
+					progress = {'id': 0, 'total_bytes': 0, 'cached_bytes': 0, 'cached_blocks': 0, 'total_blocks': 0, 'percent': 0, 'speed': 0}
+					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'progress': progress})
+					#self.send_error(500,'Internal Server Error')		
 			elif data['method'] == 'queue':
-					try:
-						DB=MyDatabaseAPI(DB_FILE)
-						rows = DB.query("SELECT fileid, video_type, filename, status, raw_url FROM queue ORDER BY id ASC", force_double_array=True)
-						DB.disconnect()
-						self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'queue': rows})
-					except:
-						self.send_error(500,'Internal Server Error')
+				try:
+					DB=MyDatabaseAPI(DB_FILE)
+					rows = DB.query("SELECT id, video_type, filename, status, raw_url, fileid FROM queue ORDER BY id ASC", force_double_array=True)
+					DB.disconnect()
+					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'queue': rows})
+				except:
+					self.send_error(500,'Internal Server Error')
 			elif data['method'] == 'tvshows':
 				try:
 					videos = vfs.ls(TVSHOW_DIRECTORY, pattern="avi$")[1]
 					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'tvshows': videos})
 				except:
-						self.send_error(500,'Internal Server Error')
+					self.send_error(500,'Internal Server Error')
 			elif data['method'] == 'movies':
 				try:
 					videos = vfs.ls(MOVIE_DIRECTORY, pattern="avi$")[1]
 					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'movies': videos})
 				except:
-						self.send_error(500,'Internal Server Error')
+					self.send_error(500,'Internal Server Error')
 			elif data['method'] == 'search':
 				try:
 					from trakt_api import TraktAPI
@@ -320,7 +321,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 					self.send_error(500,'Internal Server Error')
 			elif data['method'] == 'abort':
 				try:
-					set_property("abort_all", "true")
+					set_property("abort_id", data['file_id'])
 					self.do_Response({'status': 200, 'message': 'success', 'method': data['method']})
 				except:
 					self.send_error(500,'Internal Server Error')
