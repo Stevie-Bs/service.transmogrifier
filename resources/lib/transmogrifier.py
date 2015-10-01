@@ -1,3 +1,4 @@
+import re
 import xbmcgui
 import time
 import math
@@ -39,6 +40,7 @@ class OutputHandler():
 		self.__handle.close()
 
 	def write_block(self, block, offset, block_number):
+		print "write block %s %s of %s" % (block_number, self.__block_counter+1, self.__total_blocks)
 		self.__handle.seek(offset, 0)
 		self.__handle.write(block)
 		self.flush()
@@ -52,10 +54,13 @@ class OutputHandler():
 			if self.__queue.empty() is False:
 				block,offset,block_number = self.__queue.get()
 				self.write_block(block, offset, block_number)
-				self.__block_counter += 1
+				self.increment_counter()
 			else:
 				time.sleep(.1)
 		self.clean_up()
+		
+	def increment_counter(self):
+		self.__block_counter += 1	
 	
 	def clean_up(self):
 		self.close()
@@ -104,12 +109,19 @@ class InputHandler():
 		start_byte = int(block_number * self.__block_size)
 		end_byte = int((start_byte + self.__block_size) - 1)
 		if end_byte > self.__total_bytes: end_byte = self.__total_bytes
-		block = self.__call(start_byte, end_byte)
+		attempt = 1
+		while attempt < 11:
+			print "block %s attempt %s" % (block_number, attempt)
+			block = self.__call(start_byte, end_byte)
+			if block: break
+			time.sleep(.5)
+			attempt += 1
+				
 		return block
 		
 	def get_block(self, block_number):
 		cached = self.is_cached(block_number)
-		time.sleep(.5)
+		#time.sleep(.5)
 		if cached:
 			ADDON.log("Reading cached block %s" % block_number)
 			return self.read_cached_block(block_number), cached
@@ -132,10 +144,10 @@ class InputHandler():
 			headers = self.__headers
 			headers["Range"] = r
 			req = urllib2.Request(self.__url, headers=headers)
-			f = urllib2.urlopen(req, timeout=3)
+			f = urllib2.urlopen(req, timeout=2)
 			if f.getcode() != 206: return False
 			block = f.read(self.__block_size)
-			#f.close()
+			f.close()
 		except urllib2.URLError, e:
 			ADDON.log("HTTP Error: %s" % e)
 			return False
@@ -161,8 +173,27 @@ class Transmogrifier():
 		self.Pool = ThreadPool(NUMBER_THREADS)
 		self.completed = []
 		self.__aborting = False
+		USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.93 Safari/537.36'
+		REFERER = raw_url
+		temp = url.split("|")
+		if len(temp)>1:
+			self.url = temp[0]
+			temp = temp[1]
+			match = re.search('User-Agent=(.+?)&Referer=(.+?)$', temp)
+			if match:
+				USER_AGENT = match.group(1)
+				REFERER = match.group(2)
+		print REFERER		
+		self.__headers = {
+			'Connection': 'keep-alive',
+			'User-Agent': USER_AGENT,
+			'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
+	  		'Accept': 'image/webp,image/*,*/*;q=0.8',
+    		'Accept-Language': 'en-us,en;q=0.5',
+    		'Accept-Encoding': 'gzip, deflate, sdch',
+    		'Referrer': REFERER
+		}
 		
-	
 	def check_abort(self):
 		return get_property('abort_id') == self.file_id or self.__aborting
 	
@@ -183,9 +214,12 @@ class Transmogrifier():
 			return False
 		block, cached = self.Input.get_block(block_number)
 		if not block: return block_number * -1
-		if not cached:
-			offset_byte = block_number * self.block_size
-			self.Output.queue_block(block, offset_byte, block_number)
+		
+		#if cached:	
+		#	self.Output.increment_counter()
+		#else:
+		offset_byte = block_number * self.block_size
+		self.Output.queue_block(block, offset_byte, block_number)
 		self.cached_bytes += len(block)
 		percent, delta, kbs = self.calculate_progress()
 		self.cached_blocks += 1
@@ -203,7 +237,7 @@ class Transmogrifier():
 		if block_number < 0:
 			block_number = block_number * -1
 			print "requeue %s" % block_number
-			self.Pool.queueTask(self.transmogrify, block_number, self.transmogrified)
+			self.Pool.queueTask(self.transmogrify, block_number, block_number, self.transmogrified)
 		self.active_threads -= 1
 		#set_property("active_threads", self.active_threads)
 
@@ -226,10 +260,11 @@ class Transmogrifier():
 			self.processor.start()
 			self.started = time.time()
 			for block_number in range(0, self.total_blocks+1):
-				self.Pool.queueTask(self.transmogrify, block_number, self.transmogrified)
+				self.Pool.queueTask(self.transmogrify, block_number, block_number, self.transmogrified)
 
-			self.Pool.joinAll()
+			
 			self.processor.join()
+			self.Pool.joinAll()
 			percent, delta, kbs = self.calculate_progress()
 			clear_property(self.file_id +'.status')
 			message = 'Completed %s in %s second(s) at %s KB/s.' % (self.filename, delta, kbs)
@@ -267,13 +302,16 @@ class Transmogrifier():
 
 	def get_target_info(self):
 		try:
-			self.net = urllib2.urlopen(self.url)
+			#self.net = urllib2.urlopen(self.url)
+			req = urllib2.Request(self.url, headers=self.__headers)
+			self.net = urllib2.urlopen(req, timeout=3)
 			self.headers = self.net.headers.items()	
 			self.total_bytes = int(self.net.headers["Content-Length"])
 			self.total_blocks = int(math.ceil(self.total_bytes / self.block_size))
 			ADDON.log("total blocks: %s" % self.total_blocks)
 			set_property(self.file_id +'.status', json.dumps({'id': self.id, 'total_bytes': self.total_bytes, 'cached_bytes': self.cached_bytes, 'cached_blocks': 0, 'total_blocks': self.total_blocks, 'percent': 0, 'speed': 0}))
-		except:
+		except urllib2.URLError, e:
+			ADDON.log("HTTP Error: %s" % e)
 			return False
 		if self.total_bytes is False :
 			return False

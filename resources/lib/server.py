@@ -214,8 +214,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 			self.data_string = self.rfile.read(int(self.headers['Content-Length']))
 			data = json.loads(self.data_string)
 			#print self.headers
-			#print params
-			#print data
+			print params
+			print data
 			#print VALID_TOKENS
 			if data['method'] == 'authorize':
 				if str(data['pin']) == ADDON.get_setting('auth_pin'):
@@ -239,16 +239,17 @@ class RequestHandler(BaseHTTPRequestHandler):
 			if data['method'] == 'enqueue':
 				try:
 					count = len(data['videos'])
-					SQL = "INSERT INTO queue(video_type, filename, raw_url, url) VALUES(?,?,?,?)"
+					SQL = "INSERT INTO queue(video_type, filename, raw_url, url, fileid) VALUES(?,?,?,?,?)"
 					inserts =[]
 					for video in data['videos']:
 						raw_url = video['raw_url']
 						url = video['url']
+						file_id = hashlib.md5(url).hexdigest()
 						if 'resolve' in video.keys():
 							if video['resolve'] == 'true':
 								raw_url = video['url']
 								url = ''
-						inserts.append((video['type'], video['filename'], raw_url, url))
+						inserts.append((video['type'], video['filename'], raw_url, url, file_id))
 					print inserts	
 					DB=MyDatabaseAPI(DB_FILE)
 					DB.execute_many(SQL, inserts)
@@ -321,8 +322,16 @@ class RequestHandler(BaseHTTPRequestHandler):
 					self.send_error(500,'Internal Server Error')
 			elif data['method'] == 'abort':
 				try:
-					set_property("abort_id", data['file_id'])
-					self.do_Response({'status': 200, 'message': 'success', 'method': data['method']})
+					if 'file_id' in data:
+						file_id = data['file_id']
+					else:
+						DB=MyDatabaseAPI(DB_FILE)
+						result = DB.query("SELECT fileid FROM queue WHERE id=?", [data['id']])
+						file_id = result[0]
+						DB.disconnect()
+					print file_id
+					set_property("abort_id", file_id)
+					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], "file_id": file_id})
 				except:
 					self.send_error(500,'Internal Server Error')
 			else:

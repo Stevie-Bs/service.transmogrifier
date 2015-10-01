@@ -4,6 +4,7 @@ var __id__ = false;
 var __fileid__ = false;
 var __file__ = ''
 var __files__ = []
+var __queue_data__ = false;
 function notify(text) {
 	$("#notes").html(text);
 }

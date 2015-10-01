@@ -21,6 +21,8 @@ ACTION_MOUSE_RIGHT_CLICK = 101
 ACTION_SHOW_INFO = 11
 ACTION_CONTEXT_MENU = 117
 CONTEX_ACTION = None
+STATUS = enum(PENDING=1, ACTIVE=2, COMPLETE=3, PAUSED=4, FAILED=-1)
+
 def set_property( k, v):
 		k = "%s.%s" % (WINDOW_PREFIX, k)
 		xbmcgui.Window(10000).setProperty(k, str(v))
@@ -38,18 +40,19 @@ def view_queue():
 	class ContextWindow(Window):
 		def __init__(self, title):
 			super(self.__class__,self).__init__(title,width=250, height=300, columns=1, rows=3)
-			self.file_id = None
+			self.items = []
+			
 		def event(self):
 			global CONTEX_ACTION
 			obj = self.getFocus()
-			CONTEX_ACTION = int(obj.getSelectedItem().getProperty('index'))
+			CONTEX_ACTION = obj.getSelectedItem().getLabel().lower()
 			self.close()
 		
 		def set_info_controls(self):
-			items = ["Requeue", "Abort", "Remove", "Pause", "Resume"]
+			
 			self.create_list('dialog')
 			self.add_object('dialog', 0,0,5,1)
-			self.add_list_items('dialog', items, selectable=False, call_back=self.event)
+			self.add_list_items('dialog', self.items, selectable=False, call_back=self.event)
 			self.set_object_event('focus', 'dialog')	
 			
 	class QueueWindow(Window):
@@ -93,16 +96,17 @@ def view_queue():
 			queue = TM.get_queue()
 			self.queue_data = queue['queue']
 			queue = queue['queue']
-			
-			
-			'''queue = [
-					["tvshow 1", "tvshow", "tvshow1.avi", 1, 42, '512 mb'],
-					["tvshow 2", "tvshow", "tvshow2.avi", 0, 0, '546 mb'],
-					["tvshow 3", "tvshow", "tvshow3.avi", 0, 0, '546 mb'],
-					["movie 1", "movie", "movie1.avi", 0, 0, '1516 mb'],
-			]'''
-			
-			
+			'''def refresh_queue():
+				queue = TM.get_queue()
+				self.queue_data = queue['queue']
+				queue = queue['queue']
+				self.get_object('queue').reset()
+				self.add_list_items('queue', items, selectable=False, call_back=show_status)
+				icon_root = vfs.join(ROOT_PATH, 'resources/www/html/images')
+				for item in queue:
+					index = queue.index(item)
+					icon = vfs.join(icon_root, item[1] + '.png')
+					self.get_object('queue').getListItem(index).setIconImage(icon)'''
 			
 			def show_status():
 				obj = self.getFocus()
@@ -120,16 +124,16 @@ def view_queue():
 				self.priority.setLabel(str(index+1))
 				self.filename.setLabel(queue[index][2])
 				
-				if queue[index][3] == 1:
+				if queue[index][3] == STATUS.PENDING:
 					status = 'pending'
-					#percent = float(queue[index][4]) / 100
-					#self.update_progress_bar('progress', percent, '1.4 MB/s')
-				elif queue[index][3] == 2:
+				elif queue[index][3] == STATUS.ACTIVE:
 					status = 'active'
-				elif queue[index][3] == 3:
-					status = 'completed'
 					self.file_id = queue[index][5]
 					self.id = queue[index][0]
+				elif queue[index][3] == STATUS.COMPLETE:
+					status = 'complete'
+				elif queue[index][3] == STATUS.PAUSED:
+					status = 'paused'
 				else:
 					status = 'failed'
 				self.status.setLabel(status)	
@@ -144,13 +148,28 @@ def view_queue():
 						obj.getSelectedItem().setLabel('[B][COLOR yellow]' + obj.getSelectedItem().getLabel2() + '[/COLOR][/B]')
 					CONTEX_ACTION = None
 					context = ContextWindow(queue[index][2])
+					if queue[index][3] == STATUS.PENDING:
+						context.items = ["Remove"]
+					elif queue[index][3] == STATUS.ACTIVE:
+						context.items = ["Abort", "Pause"]
+					elif queue[index][3] == STATUS.COMPLETE:
+						context.items = ["Requeue", "Remove"]
+					elif queue[index][3] == STATUS.PAUSED:
+						context.items = ["Requeue", "Remove", "Resume"]
+					else:
+						context.items = ["Requeue", "Remove"]
 					context.show()
 					obj.getSelectedItem().setLabel(obj.getSelectedItem().getLabel2())
 					obj.getSelectedItem().setLabel2('')
-					if index==0:
+					print CONTEX_ACTION
+					if CONTEX_ACTION=='requeue':
 						TM.restart(self.queue_data[index][0])
-					elif index==1:
-						TM.restart(self.queue_data[index][5])
+					elif CONTEX_ACTION=='abort':
+						TM.abort(self.queue_data[index][5])
+						self.status.setLabel('aborting')
+					elif CONTEX_ACTION=='remove':
+						#TM.abort(self.queue_data[index][5])
+						self.status.setLabel()	
 				except: pass
 			
 			items = [item[2] for item in queue]

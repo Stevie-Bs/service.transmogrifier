@@ -23,7 +23,8 @@ $(document).ready(function() {
 	});
 
 	$("#queueAbort").live("click", function(event, ui) {
-		data = JSON.stringify({"method": "abort", "token": token})
+		
+		data = JSON.stringify({"method": "abort", "token": token, "id": __id__})
 		$.post(base_url, data);
 		$( "#queueContext" ).popup( "close" );
 		loadQueuePage();
@@ -130,6 +131,7 @@ var loadQueuePage = function() {
 	data = JSON.stringify({"method": "queue", "token": token})
 	$.post(base_url, data, function(json) {
 		html = ''
+		__queue_data__ = json['queue']
 		$.each(json['queue'], function(index){
 			row = json['queue'][index]
 			if (row[3] == 2) {
