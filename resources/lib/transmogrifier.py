@@ -69,16 +69,8 @@ class OutputHandler():
 		
 
 class InputHandler():
-	def __init__(self, url, raw_url, file_id, total_blocks, total_bytes):
-		self.__headers = {
-			'Connection': 'keep-alive',
-			'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.93 Safari/537.36',
-			'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
-	  		'Accept': 'image/webp,image/*,*/*;q=0.8',
-    		'Accept-Language': 'en-us,en;q=0.5',
-    		'Accept-Encoding': 'gzip, deflate, sdch',
-    		'Referrer': raw_url
-		}
+	def __init__(self, url, raw_url, file_id, total_blocks, total_bytes, headers):
+		self.__headers = headers
 		self.__url = url
 		self.__file_id = file_id
 		self.__block_size = BLOCK_SIZE
@@ -173,27 +165,30 @@ class Transmogrifier():
 		self.Pool = ThreadPool(NUMBER_THREADS)
 		self.completed = []
 		self.__aborting = False
-		USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.93 Safari/537.36'
-		REFERER = raw_url
-		temp = url.split("|")
-		if len(temp)>1:
-			self.url = temp[0]
-			temp = temp[1]
-			match = re.search('User-Agent=(.+?)&Referer=(.+?)$', temp)
-			if match:
-				USER_AGENT = match.group(1)
-				REFERER = match.group(2)
-		print REFERER		
+		self.set_headers(url)
+	
+	def set_headers(self, url):
 		self.__headers = {
 			'Connection': 'keep-alive',
-			'User-Agent': USER_AGENT,
+			'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.93 Safari/537.36',
 			'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
 	  		'Accept': 'image/webp,image/*,*/*;q=0.8',
     		'Accept-Language': 'en-us,en;q=0.5',
     		'Accept-Encoding': 'gzip, deflate, sdch',
-    		'Referrer': REFERER
 		}
-		
+		temp = url.split("|")
+		if len(temp) > 1:
+			header_string = temp[1]
+			test = re.search('User-Agent=(.+?)(&|$)+', header_string)
+			if test:
+				self.__headers['User-Agent'] = test.group(1)
+			test = re.search('Referer=(.+?)(&|$)+', header_string)
+			if test:
+				self.__headers['Referer'] = test.group(1)
+			test = re.search('Cookie=(.+?)(&|$)+', header_string)
+			if test:
+				self.__headers['Cookie'] = test.group(1)
+				
 	def check_abort(self):
 		return get_property('abort_id') == self.file_id or self.__aborting
 	
@@ -275,7 +270,7 @@ class Transmogrifier():
 		
 	def stream(self):
 		self.Output = OutputHandler(self.video_type, self.filename, self.file_id, self.total_blocks )
-		self.Input = InputHandler(self.url, self.file_id, self.total_blocks, self.total_bytes)
+		self.Input = InputHandler(self.url, self.file_id, self.total_blocks, self.total_bytes, self.__headers)
 		self.processor = Thread(target=self.Output.process_queue)
 		self.processor.start()
 		self.started = time.time()
@@ -302,7 +297,6 @@ class Transmogrifier():
 
 	def get_target_info(self):
 		try:
-			#self.net = urllib2.urlopen(self.url)
 			req = urllib2.Request(self.url, headers=self.__headers)
 			self.net = urllib2.urlopen(req, timeout=3)
 			self.headers = self.net.headers.items()	
