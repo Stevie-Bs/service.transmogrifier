@@ -222,9 +222,7 @@ class Transmogrifier():
 		ADDON.log("Progress: %s%s %s/%s %s KBs" % (percent, '%', self.cached_bytes, self.total_bytes, kbs))		
 		return block_number
 			
-	
-
-		
+			
 	def transmogrified(self, block_number):
 		if self.check_abort(): 
 			self.abort_all()
@@ -250,7 +248,7 @@ class Transmogrifier():
 		valid = self.get_target_info()
 		if valid:
 			self.Output = OutputHandler(self.video_type, self.filename, self.file_id, self.total_blocks )
-			self.Input = InputHandler(self.url, self.raw_url, self.file_id, self.total_blocks, self.total_bytes)
+			self.Input = InputHandler(self.url, self.raw_url, self.file_id, self.total_blocks, self.total_bytes, self.__headers)
 			self.processor = Thread(target=self.Output.process_queue)
 			self.processor.start()
 			self.started = time.time()
@@ -306,6 +304,7 @@ class Transmogrifier():
 			set_property(self.file_id +'.status', json.dumps({'id': self.id, 'total_bytes': self.total_bytes, 'cached_bytes': self.cached_bytes, 'cached_blocks': 0, 'total_blocks': self.total_blocks, 'percent': 0, 'speed': 0}))
 		except urllib2.URLError, e:
 			ADDON.log("HTTP Error: %s" % e)
+			ADDON.raise_notify("%s ERROR" % ADDON_NAME, "Unable to open URL","HTTP Error: %s" % e)
 			return False
 		if self.total_bytes is False :
 			return False
