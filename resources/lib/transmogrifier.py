@@ -17,11 +17,12 @@ class OutputHandler():
 		self.__file_id = file_id
 		self.__total_blocks = total_blocks
 		self.__queue = MyPriorityQueue()
-		self.cache_file = vfs.join(CACHE_DIRECTORY, self.__file_id + '.temp')	
+		self.cache_file = vfs.join(CACHE_DIRECTORY, self.__file_id + '.temp')
+		ext = '' if re.search('\.avi$', self.__filename) else '.avi'
 		if video_type=='tvshow':
-			self.output_file = vfs.join(TVSHOW_DIRECTORY, vfs.clean_file_name(self.__filename) + ".avi")
+			self.output_file = vfs.join(TVSHOW_DIRECTORY, vfs.clean_file_name(self.__filename) + ext)
 		elif video_type=='movie':
-			self.output_file = vfs.join(MOVIE_DIRECTORY, vfs.clean_file_name(self.__filename) + ".avi")
+			self.output_file = vfs.join(MOVIE_DIRECTORY, vfs.clean_file_name(self.__filename) + ext)
 		self.open()
 
 	def abort_all(self):
