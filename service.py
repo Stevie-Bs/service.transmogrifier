@@ -55,8 +55,8 @@ class Service(xbmc.Player):
 			if raw_url and not url:
 				source = urlresolver.HostedMediaFile(url=raw_url)
 				url = source.resolve() if source else None
-			#DB.execute("UPDATE queue SET status=2, fileid=? WHERE id=?", [file_id, id])
-			#DB.commit()
+			DB.execute("UPDATE queue SET status=2, fileid=? WHERE id=?", [file_id, id])
+			DB.commit()
 			message = "Queued: %s" % name
 			ADDON.raise_notify(ADDON_NAME, message)
 			return name, url, raw_url, id, file_id, video_type

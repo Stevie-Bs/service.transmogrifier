@@ -41,7 +41,7 @@ class OutputHandler():
 		self.__handle.close()
 
 	def write_block(self, block, offset, block_number):
-		print "write block %s %s of %s" % (block_number, self.__block_counter+1, self.__total_blocks)
+		ADDON.log("write block %s %s of %s" % (block_number, self.__block_counter+1, self.__total_blocks))
 		self.__handle.seek(offset, 0)
 		self.__handle.write(block)
 		self.flush()
@@ -142,7 +142,7 @@ class InputHandler():
 			if f.getcode() != 206: return False
 			block = f.read(self.__block_size)
 			f.close()
-		except urllib2.URLError, e:
+		except Exception, e:
 			ADDON.log("HTTP Error: %s" % e)
 			return False
 		return block
@@ -207,6 +207,7 @@ class Transmogrifier():
 		
 	def transmogrify(self, block_number):
 		if self.check_abort(): 
+			print "abort all"
 			self.abort_all()
 			return False
 		block, cached = self.Input.get_block(block_number)
@@ -231,7 +232,7 @@ class Transmogrifier():
 			return False
 		if block_number < 0:
 			block_number = block_number * -1
-			print "requeue %s" % block_number
+			ADDON.log("Requeue %s" % block_number)
 			self.Pool.queueTask(self.transmogrify, block_number, block_number, self.transmogrified)
 		self.active_threads -= 1
 		#set_property("active_threads", self.active_threads)

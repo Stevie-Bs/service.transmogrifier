@@ -152,13 +152,19 @@ def view_queue():
 					obj.getSelectedItem().setLabel2('')
 					print CONTEX_ACTION
 					if CONTEX_ACTION=='requeue':
-						TM.restart(self.queue_data[index][0])
+						print self.queue_data[index]
+						self.status.setLabel('pending')
+						self.queue_data[index][3] = 1
+						print TM.restart(self.queue_data[index][0])
 					elif CONTEX_ACTION=='abort':
-						TM.abort(self.queue_data[index][5])
+						print TM.abort(self.queue_data[index][5])
 						self.status.setLabel('aborting')
+						
 					elif CONTEX_ACTION=='remove':
-						#TM.abort(self.queue_data[index][5])
-						self.status.setLabel()	
+						TM.delete(self.queue_data[index][0])
+						self.status.setLabel('')
+						del self.queue_data[index]
+						obj.removeItem(index)
 				except: pass
 			
 			items = [item[2] for item in queue]
@@ -186,16 +192,18 @@ def view_queue():
 			if queue.file_id is not None:
 				progress = TM.get_progress(queue.file_id)
 				progress = progress['progress']
-				print progress
 				if progress['id'] != 0:
 					if not progress['percent'] : progress['percent'] = 0
 					if not progress['speed'] : progress['speed'] = 'calculating...'
 					display = "%s bytes of %s at %s kbs" % (progress['cached_bytes'], progress['total_bytes'], progress['speed'])
 					queue.update_progress_bar('progress', float(progress['percent'])/100, display)
 					queue.size.setLabel(str(progress['total_bytes']))
+					if progress['percent'] == 100:
+						print "complete task"
 				else:
 					queue.update_progress_bar('progress', 0, '')
 					queue.size.setLabel('')
+					#queue.status.setLabel('')
 			xbmc.sleep(1000)
 	monitor = Thread(target=poll_queue)
 	monitor.start()
@@ -204,6 +212,5 @@ def view_queue():
 
 	
 args = ADDON.parse_query(sys.argv[2])
-print args
 if args['mode'] == 		'main':
 	view_queue()

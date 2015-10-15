@@ -15,6 +15,8 @@ from resources.lib.database import *
 from resources.lib.transmogrifier import OutputHandler, Transmogrifier
 from Cookie import SimpleCookie
 vfs = VFSClass()
+LOG_FILE = vfs.join(DATA_PATH, 'access.log')
+ADDON.log("Setting Access log to: %s" % LOG_FILE)
 
 def set_property(k, v):
 	k = "%s.%s" % (WINDOW_PREFIX, k)
@@ -28,6 +30,7 @@ def get_property(k):
 	return p
 
 class RequestHandler(BaseHTTPRequestHandler):
+	log_file = vfs.open(LOG_FILE, 'w')
 	def process_cgi(self):
 		parts = urlparse(self.path)
 		path = parts.path
@@ -35,6 +38,10 @@ class RequestHandler(BaseHTTPRequestHandler):
 		data = cgi.parse_qs(query, keep_blank_values=True)
 		arguments = path.split('/')
 		return arguments, data, path
+	
+
+	def log_message(self, format, *args):
+		self.log_file.write("%s - - [%s] %s\n" % (self.client_address[0], self.log_date_time_string(), format%args))
 	
 	def _send_response(self, content, code=200, mime="application/json", headers=None):
 		self.send_response(code)
@@ -322,15 +329,17 @@ class RequestHandler(BaseHTTPRequestHandler):
 					self.send_error(500,'Internal Server Error')
 			elif data['method'] == 'abort':
 				try:
+					DB=MyDatabaseAPI(DB_FILE)
 					if 'file_id' in data:
 						file_id = data['file_id']
 					else:
-						DB=MyDatabaseAPI(DB_FILE)
+						
 						result = DB.query("SELECT fileid FROM queue WHERE id=?", [data['id']])
 						file_id = result[0]
-						DB.disconnect()
-					print file_id
 					set_property("abort_id", file_id)
+					DB.execute("UPDATE queue SET status=-1 WHERE fileid=?", [file_id])
+					DB.commit()
+					DB.disconnect()
 					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], "file_id": file_id})
 				except:
 					self.send_error(500,'Internal Server Error')
