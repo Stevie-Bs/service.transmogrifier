@@ -96,17 +96,6 @@ def view_queue():
 			queue = TM.get_queue()
 			self.queue_data = queue['queue']
 			queue = queue['queue']
-			'''def refresh_queue():
-				queue = TM.get_queue()
-				self.queue_data = queue['queue']
-				queue = queue['queue']
-				self.get_object('queue').reset()
-				self.add_list_items('queue', items, selectable=False, call_back=show_status)
-				icon_root = vfs.join(ROOT_PATH, 'resources/www/html/images')
-				for item in queue:
-					index = queue.index(item)
-					icon = vfs.join(icon_root, item[1] + '.png')
-					self.get_object('queue').getListItem(index).setIconImage(icon)'''
 			
 			def show_status():
 				obj = self.getFocus()

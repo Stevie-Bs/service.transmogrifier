@@ -3,12 +3,10 @@
 	<category label="Transmogrifier">
 		<setting type="lsep" label="Caching"/>
 		<setting id="enable_transmogrifier" type="bool" label="Enable Transmogrifier" default="true"/>
-		<setting label="Output Directory" type="folder" default="special://userdata/addon_data/service.transmogrifier/downloads" id="save_directory" visible="!eq(-1,false)"/>
-		<setting label="Working Directory" type="folder" default="special://userdata/addon_data/service.transmogrifier/work" id="work_directory" visible="!eq(-2,false)"/>
-		<setting id="thread_number" type="slider" label="Max Threads" default="5" option="int" range="1,10" visible="!eq(-3,false)"/>
-		<setting id="chunk_size" type="labelenum" label="Buffer Size (KB)" values="500|750|1000|1250|1500|1750|2000" default="1500" visible="!eq(-4,false)" />
-		<setting id="segment_size" type="labelenum" label="Segment Size (MB)" values="2.5|5|10|15|20|25|50" default="5" visible="!eq(-5,false)"/>
-		
+		<setting label="Output Directory" type="folder" default="special://userdata/addon_data/service.transmogrifier/downloads" id="save_directory"/>
+		<setting id="thread_number" type="slider" label="Max Threads" default="5" option="int" range="1,10"/>
+		<setting id="block_size" type="labelenum" label="Block Size (MB)" values="0.5|1|1.5|2|2.5|5" default="2" />
+		<setting id="retry_attempts" type="slider" label="Retry Attempts/Block" default="10" option="int" range="1,25"/>
 		<setting type="lsep" label="General"/>
 		<setting id="log_level" type="enum" values="Standard|Verbose" label="Log Level" default="1"/>
 		</category>

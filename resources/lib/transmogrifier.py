@@ -102,13 +102,14 @@ class InputHandler():
 		start_byte = int(block_number * self.__block_size)
 		end_byte = int((start_byte + self.__block_size) - 1)
 		if end_byte > self.__total_bytes: end_byte = self.__total_bytes
-		attempt = 1
-		while attempt < 11:
-			print "block %s attempt %s" % (block_number, attempt)
+		attempt = 0
+		while attempt < RETRY_ATTEMPTS:
+			attempt += 1
+			ADDON.log( "block %s attempt %s" % (block_number, attempt))
 			block = self.__call(start_byte, end_byte)
 			if block: break
 			time.sleep(.5)
-			attempt += 1
+			
 				
 		return block
 		
