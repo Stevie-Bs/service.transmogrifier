@@ -221,8 +221,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 			self.data_string = self.rfile.read(int(self.headers['Content-Length']))
 			data = json.loads(self.data_string)
 			#print self.headers
-			print params
-			print data
+			#print params
+			#print data
 			#print VALID_TOKENS
 			if data['method'] == 'authorize':
 				if str(data['pin']) == ADDON.get_setting('auth_pin'):
