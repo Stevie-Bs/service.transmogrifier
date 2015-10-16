@@ -34,6 +34,15 @@ def get_property(k):
 	if p == 'true': return True
 	return p
 
+def format_size(bytes):
+	size = int(bytes) / (1024 * 1024)
+	if size > 2000:
+		size = size / 1024
+		unit = 'GB'
+	else :
+		unit = 'MB'
+	size = "%s %s" % (size, unit)
+	return size
 def view_queue():
 	abort_poll = False
 	TM = TransmogrifierAPI()
@@ -70,10 +79,10 @@ def view_queue():
 			self.add_label(self.filename, 0, 1, pad_x=15, pad_y=10)
 			
 			label = self.create_label("Status:")			
-			self.add_label(label, 1, 0, pad_x=15, pad_y=10)
+			self.add_label(label, 1, 0, pad_x=15, pad_y=5)
 			
 			self.status = self.create_label("")
-			self.add_label(self.status, 1, 1, pad_x=15, pad_y=10)
+			self.add_label(self.status, 1, 1, pad_x=15, pad_y=5)
 			
 			label = self.create_label("Progress:")
 			self.add_label(label, 2, 0, pad_x=15, pad_y=10)
@@ -85,10 +94,10 @@ def view_queue():
 			self.add_label(self.size, 0, 4, pad_x=15, pad_y=10)
 			
 			label = self.create_label("Priority:")
-			self.add_label(label, 1, 3, pad_x=15, pad_y=10)
+			self.add_label(label, 1, 3, pad_x=15, pad_y=5)
 			
 			self.priority = self.create_label("")
-			self.add_label(self.priority, 1, 4, pad_x=15, pad_y=10)
+			self.add_label(self.priority, 1, 4, pad_x=15, pad_y=5)
 			
 			self.create_progress_bar('progress')
 			self.add_object('progress', 2, 1, columnspan=4, pad_y=14)
@@ -195,15 +204,15 @@ def view_queue():
 				if progress['id'] != 0:
 					if not progress['percent'] : progress['percent'] = 0
 					if not progress['speed'] : progress['speed'] = 'calculating...'
-					display = "%s bytes of %s at %s kbs" % (progress['cached_bytes'], progress['total_bytes'], progress['speed'])
+					display = "%s bytes of %s at %s kbs" % (format_size(progress['cached_bytes']), format_size(progress['total_bytes']), progress['speed'])
 					queue.update_progress_bar('progress', float(progress['percent'])/100, display)
-					queue.size.setLabel(str(progress['total_bytes']))
+					queue.size.setLabel(format_size(progress['total_bytes']))
 					if progress['percent'] == 100:
 						print "complete task"
 				else:
 					queue.update_progress_bar('progress', 0, '')
 					queue.size.setLabel('')
-					#queue.status.setLabel('')
+
 			xbmc.sleep(1000)
 	monitor = Thread(target=poll_queue)
 	monitor.start()

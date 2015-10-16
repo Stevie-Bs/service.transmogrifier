@@ -11,7 +11,7 @@ from resources.lib.common import *
 class OutputHandler():
 	def __init__(self, video_type, filename, file_id, total_blocks):
 		self.__abort = False
-		self.__block_counter = -1
+		self.__block_counter = 0
 		self.__video_type = video_type
 		self.__filename = filename
 		self.__file_id = file_id
@@ -103,9 +103,10 @@ class InputHandler():
 		end_byte = int((start_byte + self.__block_size) - 1)
 		if end_byte > self.__total_bytes: end_byte = self.__total_bytes
 		attempt = 0
-		while attempt < RETRY_ATTEMPTS:
-			attempt += 1
-			ADDON.log( "block %s attempt %s" % (block_number, attempt))
+		#while attempt < RETRY_ATTEMPTS *2:
+		#	attempt += 1
+		#	ADDON.log( "block %s attempt %s" % (block_number, attempt))
+		while True:
 			block = self.__call(start_byte, end_byte)
 			if block: break
 			time.sleep(.5)
@@ -174,9 +175,9 @@ class Transmogrifier():
 			'Connection': 'keep-alive',
 			'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.93 Safari/537.36',
 			'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
-	  		'Accept': 'image/webp,image/*,*/*;q=0.8',
-    		'Accept-Language': 'en-us,en;q=0.5',
-    		'Accept-Encoding': 'gzip, deflate, sdch',
+			'Accept': 'image/webp,image/*,*/*;q=0.8',
+			'Accept-Language': 'en-us,en;q=0.5',
+			'Accept-Encoding': 'gzip, deflate, sdch',
 		}
 		temp = url.split("|")
 		if len(temp) > 1:
@@ -211,7 +212,8 @@ class Transmogrifier():
 			self.abort_all()
 			return False
 		block, cached = self.Input.get_block(block_number)
-		if not block: return block_number * -1
+		if not block: 
+			return [False, block_number]
 		
 		#if cached:	
 		#	self.Output.increment_counter()
@@ -223,15 +225,16 @@ class Transmogrifier():
 		self.cached_blocks += 1
 		set_property(self.file_id +'.status', json.dumps({'id': self.id, 'total_bytes': self.total_bytes, 'cached_bytes': self.cached_bytes, 'cached_blocks': self.cached_blocks, 'total_blocks': self.total_blocks, 'percent': percent, 'speed': kbs}))
 		ADDON.log("Progress: %s%s %s/%s %s KBs" % (percent, '%', self.cached_bytes, self.total_bytes, kbs))		
-		return block_number
+		return [True, block_number]
 			
 			
-	def transmogrified(self, block_number):
+	def transmogrified(self, result):
 		if self.check_abort(): 
 			self.abort_all()
 			return False
-		if block_number < 0:
-			block_number = block_number * -1
+		status = result[0]
+		block_number = result[1]
+		if status is False:
 			ADDON.log("Requeue %s" % block_number)
 			self.Pool.queueTask(self.transmogrify, block_number, block_number, self.transmogrified)
 		self.active_threads -= 1
@@ -241,7 +244,7 @@ class Transmogrifier():
 		try:
 			now = time.time()
 			delta = int(now - self.started)
-			kbs = int(self.cached_bytes / (delta * 1000))
+			kbs = int(self.cached_bytes / (delta * 1024))
 			percent = int(100 * self.cached_bytes / self.total_bytes)
 			return percent, delta, kbs
 		except:
