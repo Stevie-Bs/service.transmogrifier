@@ -3,10 +3,12 @@ import xbmcgui
 import time
 import math
 import urllib2
+import random
 from threading import Thread
 from dudehere.routines import *
 from dudehere.routines.threadpool import ThreadPool, MyPriorityQueue
 from resources.lib.common import *
+
 
 class OutputHandler():
 	def __init__(self, video_type, filename, file_id, total_blocks):
@@ -30,9 +32,9 @@ class OutputHandler():
 
 	def open(self):
 		try:
-			self.__handle = open(self.cache_file, "r+b")
+			self.__handle = vfs.open(self.cache_file, "r+b")
 		except IOError:
-			self.__handle = open(self.cache_file, "wb")	
+			self.__handle = vfs.open(self.cache_file, "wb")	
 		
 	def flush(self):
 		self.__handle.flush()
@@ -44,7 +46,7 @@ class OutputHandler():
 		ADDON.log("write block %s %s of %s" % (block_number, self.__block_counter+1, self.__total_blocks))
 		self.__handle.seek(offset, 0)
 		self.__handle.write(block)
-		self.flush()
+		#self.flush()
 
 	def queue_block(self, block, offset, block_number):
 		self.__queue.put((block, offset, block_number), offset)
@@ -81,17 +83,18 @@ class InputHandler():
 		self.__cache_file = vfs.join(CACHE_DIRECTORY, self.__file_id + '.temp')	
 	
 	def is_cached(self, block_number):
-		f = vfs.open(self.__cache_file, "r")
-		end_byte = self.__block_size * block_number + self.__block_size -1
-		f.seek(end_byte, 0)
-		if f.read(1):
-			f.close()
-			return True
-		else:
-			f.close()
-			return False
+		return block_number in self.__completed
+		#f = vfs.open(self.__cache_file, "rb")
+		#end_byte = (self.__block_size * block_number) + self.__block_size - 1
+		#f.seek(end_byte, 0)
+		#test = f.read(1)
+		#f.close()
+		#if test: return True
+		#else: return False
+
+		
 	def read_cached_block(self, block_number):
-		f = vfs.open(self.__cache_file, "r")
+		f = vfs.open(self.__cache_file, "rb")
 		start_byte = block_number * self.__block_size
 		f.seek(start_byte, 0)
 		block = f.read(self.__block_size)
@@ -103,15 +106,15 @@ class InputHandler():
 		end_byte = int((start_byte + self.__block_size) - 1)
 		if end_byte > self.__total_bytes: end_byte = self.__total_bytes
 		attempt = 0
-		#while attempt < RETRY_ATTEMPTS *2:
-		#	attempt += 1
-		#	ADDON.log( "block %s attempt %s" % (block_number, attempt))
-		while True:
+		block = False
+		while attempt < RETRY_ATTEMPTS:
+			attempt += 1
+			ADDON.log( "block %s attempt %s" % (block_number, attempt))
 			block = self.__call(start_byte, end_byte)
 			if block: break
-			time.sleep(.5)
+			time.sleep(.25)
 			
-				
+		if block: self.__completed.append(block_number)
 		return block
 		
 	def get_block(self, block_number):
@@ -144,7 +147,7 @@ class InputHandler():
 			block = f.read(self.__block_size)
 			f.close()
 		except Exception, e:
-			ADDON.log("HTTP Error: %s" % e)
+			#ADDON.log("HTTP Error: %s" % e)
 			return False
 		return block
 		
