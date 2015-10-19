@@ -167,6 +167,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 						print e
 						break
 				del TM
+				set_property("stream_started", "false")
 					#self.wfile.close()
 		
 			else:
