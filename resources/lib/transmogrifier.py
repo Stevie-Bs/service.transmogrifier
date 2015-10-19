@@ -294,12 +294,12 @@ class Transmogrifier():
 			if int(temp['total_blocks']) == self.total_blocks:
 				completed_blocks = temp['completed_blocks']
 		self.Output = OutputHandler(self.video_type, self.filename, self.file_id, self.total_blocks, completed_blocks=completed_blocks)
-		self.Input = InputHandler(self.url, self.file_id, self.total_blocks, self.total_bytes, self.__headers, completed_blocks=completed_blocks)
+		self.Input = InputHandler(self.url, self.raw_url, self.file_id, self.total_blocks, self.total_bytes, self.__headers, completed_blocks=completed_blocks)
 		self.processor = Thread(target=self.Output.process_queue)
 		self.processor.start()
 		self.started = time.time()
 		for block_number in range(0, self.total_blocks+1):
-			self.Pool.queueTask(self.transmogrify, block_number, self.transmogrified)
+			self.Pool.queueTask(self.transmogrify, block_number, block_number, self.transmogrified)
 		return True
 
 	def seek(self):

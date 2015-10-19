@@ -124,13 +124,13 @@ class RequestHandler(BaseHTTPRequestHandler):
 				self.send_header("Accept-Ranges","bytes")
 				self.send_header("Cache-Control","public, must-revalidate")
 				self.send_header("Cache-Control","no-cache")
-				self.send_header("Content-Type", "video/video/mp4")
+				self.send_header("Content-Type", "video/avi")
 				self.send_header("Features","seekable,stridable")
 				self.send_header("Connection", 'close')
 				self.send_header("client-id","12345")
-				self.send_header("Content-Disposition", 'inline; filename="stream.mp4"')
+				self.send_header("Content-Disposition", 'inline; filename="stream.avi"')
 				self.send_header("Set-Cookie", "file_id=" + file_id)
-				TM = Transmogrifier(0, url, '', '', '', file_id, video_type='stream')
+				TM = Transmogrifier(0, url, '', 'stream.avi', file_id, video_type='stream')
 				TM.get_target_info()
 				file_size = TM.total_bytes
 				current_byte = 0
