@@ -135,6 +135,7 @@ class InputHandler():
 		if cached:
 			return self.read_cached_block(block_number)
 		else:
+			print "need to reprioritize queue here if delta block is greater then allowed"
 			# need to reprioritize queue here if delta block is greater then allowed
 			return False
 	
@@ -286,8 +287,14 @@ class Transmogrifier():
 			ADDON.raise_notify(ADDON_NAME, "Unable to download source, try another")
 		
 	def stream(self):
-		self.Output = OutputHandler(self.video_type, self.filename, self.file_id, self.total_blocks )
-		self.Input = InputHandler(self.url, self.file_id, self.total_blocks, self.total_bytes, self.__headers)
+		self.state_file = vfs.join(CACHE_DIRECTORY, self.file_id + '.state')
+		completed_blocks = []
+		if vfs.exists(self.state_file):
+			temp = ADDON.load_data(self.state_file)
+			if int(temp['total_blocks']) == self.total_blocks:
+				completed_blocks = temp['completed_blocks']
+		self.Output = OutputHandler(self.video_type, self.filename, self.file_id, self.total_blocks, completed_blocks=completed_blocks)
+		self.Input = InputHandler(self.url, self.file_id, self.total_blocks, self.total_bytes, self.__headers, completed_blocks=completed_blocks)
 		self.processor = Thread(target=self.Output.process_queue)
 		self.processor.start()
 		self.started = time.time()
