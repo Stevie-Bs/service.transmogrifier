@@ -246,7 +246,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 			if data['method'] == 'enqueue':
 				try:
 					count = len(data['videos'])
-					SQL = "INSERT INTO queue(video_type, filename, raw_url, url, fileid) VALUES(?,?,?,?,?)"
+					SQL = "INSERT INTO queue(video_type, filename, save_dir, imdb_id, title, season, episode, raw_url, url, fileid) VALUES(?,?,?,?,?,?,?,?,?,?)"
 					inserts =[]
 					for video in data['videos']:
 						raw_url = video['raw_url']
@@ -256,8 +256,12 @@ class RequestHandler(BaseHTTPRequestHandler):
 							if video['resolve'] == 'true':
 								raw_url = video['url']
 								url = ''
-						inserts.append((video['type'], video['filename'], raw_url, url, file_id))
-					print inserts	
+						save_dir = video['save_dir'] if 'save_dir' in video.keys() else ''
+						imdb_id = video['imdb_id'] if 'imdb_id' in video.keys() else ''
+						title = video['title'] if 'title' in video.keys() else ''
+						season = video['season'] if 'season' in video.keys() else ''
+						episode = video['episode'] if 'episode' in video.keys() else ''
+						inserts.append((video['type'], video['filename'], save_dir, imdb_id, title, season, episode, raw_url, url, file_id))
 					DB=MyDatabaseAPI(DB_FILE)
 					DB.execute_many(SQL, inserts)
 					DB.commit()
@@ -293,7 +297,6 @@ class RequestHandler(BaseHTTPRequestHandler):
 				try:
 					file_id = data['fileid']
 					progress = json.loads(get_property(file_id +'.status'))
-					print progress
 					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'progress': progress})
 				except:
 					progress = {'id': 0, 'total_bytes': 0, 'cached_bytes': 0, 'cached_blocks': 0, 'total_blocks': 0, 'percent': 0, 'speed': 0}

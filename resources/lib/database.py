@@ -5,15 +5,19 @@ if ADDON.get_setting('database_mysql')=='true':
 	class MyDatabaseAPI(DatabaseAPI):
 		def _initialize(self):
 			SQL = '''CREATE TABLE IF NOT EXISTS `queue` (
-					`id` INT NOT NULL AUTO_INCREMENT, 
-					`video_type` VARCHAR(10) NULL, 
-					`priority` INT NULL DEFAULT 10, 
-					`filename` VARCHAR(150) NOT NULL, 
-					`fileid` VARCHAR(45) NULL, 
-					`raw_url` VARCHAR(225) NULL, 
-					`url` VARCHAR(225) NULL, 
-					`status` TINYINT NULL, 
-					PRIMARY KEY (`id`)
+					"id" INTEGER PRIMARY KEY AUTOINCREMENT, 
+					"priority" INTEGER DEFAULT (10), 
+					"video_type" TEXT, 
+					"filename" TEXT,
+					"imdb_id" TEXT,
+					"season" INTEGER,
+					"episode" INTEGER,
+					"title" TEXT,
+					"fileid" TEXT, 
+					"raw_url" TEXT, 
+					"url" TEXT, 
+					"save_dir" TEXT,
+					"status" INTEGER DEFAULT (1)
 					)'''
 			self.execute(SQL)
 			self.commit()
@@ -33,10 +37,15 @@ else:
 					"id" INTEGER PRIMARY KEY AUTOINCREMENT, 
 					"priority" INTEGER DEFAULT (10), 
 					"video_type" TEXT, 
-					"filename" TEXT, 
+					"filename" TEXT,
+					"imdb_id" TEXT,
+					"season" INTEGER,
+					"episode" INTEGER,
+					"title" TEXT,
 					"fileid" TEXT, 
 					"raw_url" TEXT, 
 					"url" TEXT, 
+					"save_dir" TEXT,
 					"status" INTEGER DEFAULT (1)
 					)'''
 			self.execute(SQL)

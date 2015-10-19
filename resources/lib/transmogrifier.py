@@ -11,20 +11,21 @@ from resources.lib.common import *
 
 
 class OutputHandler():
-	def __init__(self, video_type, filename, file_id, total_blocks):
+	def __init__(self, video_type, filename, file_id, total_blocks, completed_blocks = [], extension='avi'):
 		self.__abort = False
 		self.__block_counter = 0
 		self.__video_type = video_type
 		self.__filename = filename
 		self.__file_id = file_id
 		self.__total_blocks = total_blocks
+		self.__completed_blocks = completed_blocks
 		self.__queue = MyPriorityQueue()
 		self.cache_file = vfs.join(CACHE_DIRECTORY, self.__file_id + '.temp')
-		ext = '' if re.search('\.avi$', self.__filename) else '.avi'
+		self.state_file = vfs.join(CACHE_DIRECTORY, self.__file_id + '.state')
 		if video_type=='tvshow':
-			self.output_file = vfs.join(TVSHOW_DIRECTORY, vfs.clean_file_name(self.__filename) + ext)
+			self.output_file = vfs.join(TVSHOW_DIRECTORY, vfs.clean_file_name(self.__filename) + '.' + extension)
 		elif video_type=='movie':
-			self.output_file = vfs.join(MOVIE_DIRECTORY, vfs.clean_file_name(self.__filename) + ext)
+			self.output_file = vfs.join(MOVIE_DIRECTORY, vfs.clean_file_name(self.__filename) + '.' + extension)
 		self.open()
 
 	def abort_all(self):
@@ -32,9 +33,9 @@ class OutputHandler():
 
 	def open(self):
 		try:
-			self.__handle = vfs.open(self.cache_file, "r+b")
+			self.__handle = open(self.cache_file, "r+b")
 		except IOError:
-			self.__handle = vfs.open(self.cache_file, "wb")	
+			self.__handle = open(self.cache_file, "wb")	
 		
 	def flush(self):
 		self.__handle.flush()
@@ -43,9 +44,11 @@ class OutputHandler():
 		self.__handle.close()
 
 	def write_block(self, block, offset, block_number):
-		ADDON.log("write block %s %s of %s" % (block_number, self.__block_counter+1, self.__total_blocks))
+		ADDON.log("write block %s %s of %s" % (block_number, self.__block_counter+1, self.__total_blocks), LOG_LEVEL.STANDARD)
 		self.__handle.seek(offset, 0)
 		self.__handle.write(block)
+		self.__completed_blocks.append(block_number)
+		ADDON.save_data(self.state_file, {"total_blocks": self.__total_blocks, "completed_blocks": self.__completed_blocks})
 		#self.flush()
 
 	def queue_block(self, block, offset, block_number):
@@ -69,21 +72,21 @@ class OutputHandler():
 		self.close()
 		if self.__video_type != 'stream':
 			vfs.rename(self.cache_file, self.output_file, quiet=True)
-		
+		vfs.rm(self.state_file, quiet=True)
 
 class InputHandler():
-	def __init__(self, url, raw_url, file_id, total_blocks, total_bytes, headers):
+	def __init__(self, url, raw_url, file_id, total_blocks, total_bytes, headers, completed_blocks = []):
 		self.__headers = headers
 		self.__url = url
 		self.__file_id = file_id
 		self.__block_size = BLOCK_SIZE
 		self.__total_blocks = total_blocks
 		self.__total_bytes = total_bytes
-		self.__completed = []
+		self.__completed_blocks = completed_blocks
 		self.__cache_file = vfs.join(CACHE_DIRECTORY, self.__file_id + '.temp')	
 	
 	def is_cached(self, block_number):
-		return block_number in self.__completed
+		return block_number in self.__completed_blocks
 		#f = vfs.open(self.__cache_file, "rb")
 		#end_byte = (self.__block_size * block_number) + self.__block_size - 1
 		#f.seek(end_byte, 0)
@@ -109,22 +112,22 @@ class InputHandler():
 		block = False
 		while attempt < RETRY_ATTEMPTS:
 			attempt += 1
-			ADDON.log( "block %s attempt %s" % (block_number, attempt))
+			ADDON.log("block %s attempt %s" % (block_number, attempt), LOG_LEVEL.STANDARD)
 			block = self.__call(start_byte, end_byte)
 			if block: break
 			time.sleep(.25)
 			
-		if block: self.__completed.append(block_number)
+		if block: self.__completed_blocks.append(block_number)
 		return block
 		
 	def get_block(self, block_number):
 		cached = self.is_cached(block_number)
 		#time.sleep(.5)
 		if cached:
-			ADDON.log("Reading cached block %s" % block_number)
+			ADDON.log("Reading cached block %s" % block_number, LOG_LEVEL.STANDARD)
 			return self.read_cached_block(block_number), cached
 		else:
-			ADDON.log("Reading remote block %s" % block_number)
+			ADDON.log("Reading remote block %s" % block_number, LOG_LEVEL.STANDARD)
 			return self.read_remote_block(block_number), cached
 		
 	def read_block(self, block_number):
@@ -137,7 +140,7 @@ class InputHandler():
 	
 	def __call(self, start_byte, end_byte):
 		r = 'bytes=%s-%s' % (start_byte, end_byte)
-		#ADDON.log("Requesting remote bytes: %s" % r)
+		#ADDON.log("Requesting remote bytes: %s" % r, LOG_LEVEL.STANDARD)
 		try:
 			headers = self.__headers
 			headers["Range"] = r
@@ -203,10 +206,10 @@ class Transmogrifier():
 			self.Input.__abort = True
 			clear_property('abort_id')
 			clear_property(self.file_id +'.status')
-			ADDON.log("Aborting Transmogrification...", 1)
-			ADDON.log("Cleaning Cache...", 1)
+			ADDON.log("Aborting Transmogrification...", LOG_LEVEL.VERBOSE)
+			ADDON.log("Cleaning Cache...", LOG_LEVEL.VERBOSE)
 			#vfs.rm(self.output_file, quiet=True)	# should I remove the cached file?
-			ADDON.log("Waiting to Transmogrify...",1)
+			ADDON.log("Waiting to Transmogrify...", LOG_LEVEL.VERBOSE)
 			self.__aborting = True
 		
 	def transmogrify(self, block_number):
@@ -227,7 +230,7 @@ class Transmogrifier():
 		percent, delta, kbs = self.calculate_progress()
 		self.cached_blocks += 1
 		set_property(self.file_id +'.status', json.dumps({'id': self.id, 'total_bytes': self.total_bytes, 'cached_bytes': self.cached_bytes, 'cached_blocks': self.cached_blocks, 'total_blocks': self.total_blocks, 'percent': percent, 'speed': kbs}))
-		ADDON.log("Progress: %s%s %s/%s %s KBs" % (percent, '%', self.cached_bytes, self.total_bytes, kbs))		
+		ADDON.log("Progress: %s%s %s/%s %s KBs" % (percent, '%', self.cached_bytes, self.total_bytes, kbs), LOG_LEVEL.STANDARD)
 		return [True, block_number]
 			
 			
@@ -238,7 +241,7 @@ class Transmogrifier():
 		status = result[0]
 		block_number = result[1]
 		if status is False:
-			ADDON.log("Requeue %s" % block_number)
+			ADDON.log("Requeue %s" % block_number, LOG_LEVEL.STANDARD)
 			self.Pool.queueTask(self.transmogrify, block_number, block_number, self.transmogrified)
 		self.active_threads -= 1
 		#set_property("active_threads", self.active_threads)
@@ -256,8 +259,14 @@ class Transmogrifier():
 	def start(self):
 		valid = self.get_target_info()
 		if valid:
-			self.Output = OutputHandler(self.video_type, self.filename, self.file_id, self.total_blocks )
-			self.Input = InputHandler(self.url, self.raw_url, self.file_id, self.total_blocks, self.total_bytes, self.__headers)
+			self.state_file = vfs.join(CACHE_DIRECTORY, self.file_id + '.state')
+			completed_blocks = []
+			if vfs.exists(self.state_file):
+				temp = ADDON.load_data(self.state_file)
+				if int(temp['total_blocks']) == self.total_blocks:
+					completed_blocks = temp['completed_blocks']
+			self.Output = OutputHandler(self.video_type, self.filename, self.file_id, self.total_blocks, completed_blocks=completed_blocks, extension=self.extension)
+			self.Input = InputHandler(self.url, self.raw_url, self.file_id, self.total_blocks, self.total_bytes, self.__headers, completed_blocks=completed_blocks)
 			self.processor = Thread(target=self.Output.process_queue)
 			self.processor.start()
 			self.started = time.time()
@@ -270,10 +279,11 @@ class Transmogrifier():
 			percent, delta, kbs = self.calculate_progress()
 			clear_property(self.file_id +'.status')
 			message = 'Completed %s in %s second(s) at %s KB/s.' % (self.filename, delta, kbs)
-			ADDON.log(message, 1)
+			ADDON.log(message, LOG_LEVEL.VERBOSE)
 			ADDON.raise_notify(ADDON_NAME, message)
 		else:
-			ADDON.log('Invalid url, sorry!', 1)
+			ADDON.log('Invalid url, sorry!', LOG_LEVEL.VERBOSE)
+			ADDON.raise_notify(ADDON_NAME, "Unable to download source, try another")
 		
 	def stream(self):
 		self.Output = OutputHandler(self.video_type, self.filename, self.file_id, self.total_blocks )
@@ -303,16 +313,35 @@ class Transmogrifier():
 		return block_number
 
 	def get_target_info(self):
+		table = {
+			"application/x-troff-msvideo":		"avi",
+			"video/avi":						"avi",
+			"video/msvideo":					"avi",
+			"video/x-msvideo":					"avi",
+			"video/quicktime":					"mov",
+			"video/mp4":						"mp4",
+			"video/x-matroska":					"mkv",
+			"video/flv":						"flv",
+			"video/x-flv":						"flv"
+		}
+		
+		
 		try:
 			req = urllib2.Request(self.url, headers=self.__headers)
 			self.net = urllib2.urlopen(req, timeout=3)
 			self.headers = self.net.headers.items()	
 			self.total_bytes = int(self.net.headers["Content-Length"])
 			self.total_blocks = int(math.ceil(self.total_bytes / self.block_size))
-			ADDON.log("total blocks: %s" % self.total_blocks)
+			ADDON.log("Total blocks: %s" % self.total_blocks, LOG_LEVEL.VERBOSE)
+			try:
+				ADDON.log("Found content-type: %s" % self.net.headers["Content-Type"], LOG_LEVEL.VERBOSE)
+				self.extension = table[self.net.headers["Content-Type"]]
+			except:
+				ADDON.log("No content-type found, assuming avi", LOG_LEVEL.VERBOSE)
+				self.extension = 'avi'
 			set_property(self.file_id +'.status', json.dumps({'id': self.id, 'total_bytes': self.total_bytes, 'cached_bytes': self.cached_bytes, 'cached_blocks': 0, 'total_blocks': self.total_blocks, 'percent': 0, 'speed': 0}))
 		except urllib2.URLError, e:
-			ADDON.log("HTTP Error: %s" % e)
+			ADDON.log("HTTP Error: %s" % e, LOG_LEVEL.VERBOSE)
 			ADDON.raise_notify("%s ERROR" % ADDON_NAME, "Unable to open URL","HTTP Error: %s" % e)
 			return False
 		if self.total_bytes is False :
