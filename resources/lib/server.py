@@ -156,6 +156,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 				while True:
 					try:
 						block, end_byte = TM.read_block(start_byte=current_byte)
+						print "stream %s - %s / %s" % (current_byte, end_byte, file_size)
 						if block is not False:
 							current_byte = end_byte + 1
 							self.wfile.write(block)

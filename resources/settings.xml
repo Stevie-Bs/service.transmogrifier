@@ -3,19 +3,28 @@
 	<category label="Transmogrifier">
 		<setting type="lsep" label="Caching"/>
 		<setting id="enable_transmogrifier" type="bool" label="Enable Transmogrifier" default="true"/>
-		<setting label="Output Directory" type="folder" default="special://userdata/addon_data/service.transmogrifier/downloads" id="save_directory"/>
+		<setting id="enable_custom_output" type="bool" label="Enable Custom Output Directory" default="false"/>
+		<setting label="Output Directory" type="folder" default="special://userdata/addon_data/service.transmogrifier/downloads" id="save_directory" enable="!eq(-1,false)" subsetting="true" />
+		<setting id="enable_custom_work" type="bool" label="Enable Custom Work Directory" default="false"/>
+		<setting label="Work Directory" type="folder" default="special://userdata/addon_data/service.transmogrifier/work" id="work_directory" enable="!eq(-1,false)" subsetting="true" />
 		<setting id="thread_number" type="slider" label="Max Threads" default="5" option="int" range="1,10"/>
-		<setting id="block_size" type="labelenum" label="Block Size (MB)" values="0.5|1|1.5|2|2.5|5" default="2" />
-		<setting id="retry_attempts" type="slider" label="Retry Attempts/Block" default="10" option="int" range="1,25"/>
+		<setting id="block_size" type="labelenum" label="Block Size (MB)" values="0.5|1|1.5|2|2.5|5" default="1.5" />
+		<setting id="retry_attempts" type="slider" label="Retry Attempts/Block" default="5" option="int" range="1,25"/>
 		<setting type="lsep" label="General"/>
 		<setting id="log_level" type="enum" values="Standard|Verbose" label="Log Level" default="1"/>
 		</category>
 	<category label="Web Service">
-		<setting id="enable_webserver" type="bool" label="Enable Webserver" default="true"/>
-		<setting id="network_bind" type="labelenum" label="Network" values="All Subnets|Local Subnet|Localhost|" default="All Subnets" />
-		<setting label="Port" type="slider" id="control_port" default="8750" range="8000,1,8999" option="int" visible="!eq(-1,false)"/>
+		<setting id="network_bind" type="labelenum" label="Network" values="All Subnets|Localhost" default="Localhost" />
+		<setting label="Port" type="slider" id="control_port" default="8750" range="8000,1,8999" option="int"/>
+		<setting id="auth_pin" type="text" label="Pin" default="4321"/>
 		<setting id="auth_token" type="text" default="" visible="false"/>
-		<setting id="auth_pin" type="text" label="Pin" default="5867"/>
+	</category>
+		<category label="Transmogrigier Client">
+		<setting id="connect_remote" type="bool" label="Connect to Remote Transmogrifier" default="false"/>
+		<setting id="remote_host" type="text" label="Remote Hostname" default="" enable="!eq(-1,false)" subsetting="true" />
+		<setting id="remote_control_port" label="Port" type="slider" default="8750" range="8000,1,8999" option="int" enable="!eq(-2,false)" subsetting="true" />
+		<setting id="remote_auth_pin" type="text" label="Pin" default="4321" subsetting="true" enable="!eq(-3,false)"/>
+		<setting id="remote_auth_token" type="text" default="" visible="false"/>
 	</category>
 	<category label="Database">
 		<setting id="database_sqlite" type="bool" label="Use SQLite Database" default="true" enable="eq(2,false) + !eq(-1,false)"/>

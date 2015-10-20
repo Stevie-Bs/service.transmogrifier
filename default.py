@@ -70,7 +70,13 @@ def view_queue():
 			self.draw()	
 		
 		def set_info_controls(self):
-			
+			connection = "[COLOR blue]http://%s:%s[/COLOR]"
+			if ADDON.get_setting('connect_remote') == 'true':
+				connection = connection % (ADDON.get_setting('remote_host'), ADDON.get_setting('remote_control_port'))
+			else:
+				connection = connection % ('localhost', ADDON.get_setting('control_port'))
+			label = self.create_label(connection)
+			self.add_label(label, 9, 0, pad_x=15, pad_y=7, columnspan=3)
 			
 			label = self.create_label("File:")
 			self.add_label(label, 0, 0, pad_x=15, pad_y=10)
@@ -189,12 +195,20 @@ def view_queue():
 			self.connectEventList([ACTION_MOUSE_RIGHT_CLICK,ACTION_SHOW_INFO, ACTION_CONTEXT_MENU], show_context)
 			
 			self.create_button('close', 'Close')
-			self.add_object("close", 9, 2)
+			self.add_object("close", 9, 4)
+			self.create_button('reload', 'Reload')
+			self.add_object("reload", 9, 3)
 			self.set_object_event('action', 'close', self.close)
 			
 	queue = QueueWindow('%s Version: %s' % (ADDON_NAME, VERSION))
 	queue.file_id = None
-	queue.set_object_event("focus", "queue")
+	queue.set_object_event("focus", "close")
+	queue.set_object_event("up", "close", "queue")
+	queue.set_object_event("left", "close", "reload")
+	queue.set_object_event("right", "reload", "close")
+	queue.set_object_event("up", "reload", "queue")
+	queue.set_object_event("down", "queue", "close")
+	queue.set_object_event("right", "queue", "close")
 	def poll_queue():
 		while True:
 			if abort_poll: break
@@ -219,7 +233,7 @@ def view_queue():
 	queue.show()
 	abort_poll = True
 
-	
+
 args = ADDON.parse_query(sys.argv[2])
 if args['mode'] == 		'main':
 	view_queue()

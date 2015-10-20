@@ -20,8 +20,8 @@ class OutputHandler():
 		self.__total_blocks = total_blocks
 		self.__completed_blocks = completed_blocks
 		self.__queue = MyPriorityQueue()
-		self.cache_file = vfs.join(CACHE_DIRECTORY, self.__file_id + '.temp')
-		self.state_file = vfs.join(CACHE_DIRECTORY, self.__file_id + '.state')
+		self.cache_file = vfs.join(WORK_DIRECTORY, self.__file_id + '.temp')
+		self.state_file = vfs.join(WORK_DIRECTORY, self.__file_id + '.state')
 		if video_type=='tvshow':
 			self.output_file = vfs.join(TVSHOW_DIRECTORY, vfs.clean_file_name(self.__filename) + '.' + extension)
 		elif video_type=='movie':
@@ -34,8 +34,10 @@ class OutputHandler():
 	def open(self):
 		try:
 			self.__handle = open(self.cache_file, "r+b")
+			#self.__handle = vfs.open(self.cache_file, "r+b")
 		except IOError:
-			self.__handle = open(self.cache_file, "wb")	
+			self.__handle = open(self.cache_file, "wb")
+			#self.__handle = vfs.open(self.cache_file, "wb")
 		
 	def flush(self):
 		self.__handle.flush()
@@ -49,7 +51,7 @@ class OutputHandler():
 		self.__handle.write(block)
 		self.__completed_blocks.append(block_number)
 		ADDON.save_data(self.state_file, {"total_blocks": self.__total_blocks, "completed_blocks": self.__completed_blocks})
-		#self.flush()
+		self.flush()
 
 	def queue_block(self, block, offset, block_number):
 		self.__queue.put((block, offset, block_number), offset)
@@ -71,7 +73,11 @@ class OutputHandler():
 	def clean_up(self):
 		self.close()
 		if self.__video_type != 'stream':
-			vfs.rename(self.cache_file, self.output_file, quiet=True)
+			if ADDON.get_setting('enable_custom_output') == 'true':
+				ADDON.log("Moving %s to %s" % (self.cache_file, self.output_file), LOG_LEVEL.VERBOSE)
+				vfs.mv(self.cache_file, self.output_file)
+			else:
+				vfs.rename(self.cache_file, self.output_file, quiet=True)
 		vfs.rm(self.state_file, quiet=True)
 
 class InputHandler():
@@ -151,7 +157,7 @@ class InputHandler():
 			block = f.read(self.__block_size)
 			f.close()
 		except Exception, e:
-			#ADDON.log("HTTP Error: %s" % e)
+			ADDON.log("HTTP Error: %s" % e, LOG_LEVEL.VERBOSE)
 			return False
 		return block
 		
@@ -260,7 +266,7 @@ class Transmogrifier():
 	def start(self):
 		valid = self.get_target_info()
 		if valid:
-			self.state_file = vfs.join(CACHE_DIRECTORY, self.file_id + '.state')
+			self.state_file = vfs.join(WORK_DIRECTORY, self.file_id + '.state')
 			completed_blocks = []
 			if vfs.exists(self.state_file):
 				temp = ADDON.load_data(self.state_file)
@@ -287,7 +293,7 @@ class Transmogrifier():
 			ADDON.raise_notify(ADDON_NAME, "Unable to download source, try another")
 		
 	def stream(self):
-		self.state_file = vfs.join(CACHE_DIRECTORY, self.file_id + '.state')
+		self.state_file = vfs.join(WORK_DIRECTORY, self.file_id + '.state')
 		completed_blocks = []
 		if vfs.exists(self.state_file):
 			temp = ADDON.load_data(self.state_file)
@@ -303,7 +309,7 @@ class Transmogrifier():
 		return True
 
 	def seek(self):
-		self.Input = InputHandler(self.url, self.file_id, self.total_blocks, self.total_bytes)
+		self.Input = InputHandler(self.url, self.file_id, self.total_blocks, self.total_bytes, self.__headers, completed_blocks=completed_blocks)
 	
 	def read_block(self, start_byte=0):
 		end_byte = (start_byte + self.block_size) - 1
@@ -336,16 +342,21 @@ class Transmogrifier():
 		try:
 			req = urllib2.Request(self.url, headers=self.__headers)
 			self.net = urllib2.urlopen(req, timeout=3)
-			self.headers = self.net.headers.items()	
+			self.headers = self.net.headers.items()
 			self.total_bytes = int(self.net.headers["Content-Length"])
 			self.total_blocks = int(math.ceil(self.total_bytes / self.block_size))
 			ADDON.log("Total blocks: %s" % self.total_blocks, LOG_LEVEL.VERBOSE)
+			self.extension = False
 			try:
-				ADDON.log("Found content-type: %s" % self.net.headers["Content-Type"], LOG_LEVEL.VERBOSE)
-				self.extension = table[self.net.headers["Content-Type"]]
-			except:
-				ADDON.log("No content-type found, assuming avi", LOG_LEVEL.VERBOSE)
-				self.extension = 'avi'
+				self.extension = re.search('filename="(.+?)\.(mkv|avi|mov|mp4|flv)"$', self.net.headers["Content-Disposition"], re.IGNORECASE).group(2).lower()
+			except:pass
+			if not self.extension:
+				try:
+					ADDON.log("Found content-type: %s" % self.net.headers["Content-Type"], LOG_LEVEL.VERBOSE)
+					self.extension = table[self.net.headers["Content-Type"]]
+				except:
+					ADDON.log("No content-type found, assuming avi", LOG_LEVEL.VERBOSE)
+					self.extension = 'avi'
 			set_property(self.file_id +'.status', json.dumps({'id': self.id, 'total_bytes': self.total_bytes, 'cached_bytes': self.cached_bytes, 'cached_blocks': 0, 'total_blocks': self.total_blocks, 'percent': 0, 'speed': 0}))
 		except urllib2.URLError, e:
 			ADDON.log("HTTP Error: %s" % e, LOG_LEVEL.VERBOSE)
