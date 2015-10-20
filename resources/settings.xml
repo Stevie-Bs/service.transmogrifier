@@ -2,6 +2,9 @@
 <settings>
 	<category label="Transmogrifier">
 		<setting type="lsep" label="Caching"/>
+		<setting type="lsep" label="Work directory MUST be a local direcotry."/>
+		<setting type="lsep" label="Leave these alone unless you know what you are doing!!!"/>
+		<setting id="clear_cache" type="bool" label="Clear Work Cache on Startup" default="true"/>
 		<setting id="enable_transmogrifier" type="bool" label="Enable Transmogrifier" default="true"/>
 		<setting id="enable_custom_output" type="bool" label="Enable Custom Output Directory" default="false"/>
 		<setting label="Output Directory" type="folder" default="special://userdata/addon_data/service.transmogrifier/downloads" id="save_directory" enable="!eq(-1,false)" subsetting="true" />
@@ -14,12 +17,16 @@
 		<setting id="log_level" type="enum" values="Standard|Verbose" label="Log Level" default="1"/>
 		</category>
 	<category label="Web Service">
+		<setting type="lsep" label="The Transmogrifier Web Control Service."/>
+		<setting type="lsep" label="Specify security pin, conneciton port and interface 0.0.0.0/127.0.0.1"/>
 		<setting id="network_bind" type="labelenum" label="Network" values="All Subnets|Localhost" default="Localhost" />
 		<setting label="Port" type="slider" id="control_port" default="8750" range="8000,1,8999" option="int"/>
 		<setting id="auth_pin" type="text" label="Pin" default="4321"/>
 		<setting id="auth_token" type="text" default="" visible="false"/>
 	</category>
 		<category label="Transmogrigier Client">
+		<setting type="lsep" label="The Transmogrifier management client can connect to a remote server."/>
+		<setting type="lsep" label="Leave this alone unless you know what you are doing."/>
 		<setting id="connect_remote" type="bool" label="Connect to Remote Transmogrifier" default="false"/>
 		<setting id="remote_host" type="text" label="Remote Hostname" default="" enable="!eq(-1,false)" subsetting="true" />
 		<setting id="remote_control_port" label="Port" type="slider" default="8750" range="8000,1,8999" option="int" enable="!eq(-2,false)" subsetting="true" />
@@ -27,6 +34,8 @@
 		<setting id="remote_auth_token" type="text" default="" visible="false"/>
 	</category>
 	<category label="Database">
+		<setting type="lsep" label="The Transmogrifier Database."/>
+		<setting type="lsep" label="Leave this alone unless you know what you are doing."/>
 		<setting id="database_sqlite" type="bool" label="Use SQLite Database" default="true" enable="eq(2,false) + !eq(-1,false)"/>
 		<setting id="database_sqlite_file" type="file" label="Database Location" default="special://userdata/addon_data/service.transmogrifier/transmogrifier.db" enable="!eq(-1,false)  + !eq(-2,false)" subsetting="true" />
 		<setting id="database_mysql" type="bool" label="Use MySQL Database" default="false" enable="!eq(-2,false) + !eq(-3,false)"/>		

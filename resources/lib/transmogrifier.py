@@ -85,24 +85,18 @@ class OutputHandler():
 class InputHandler():
 	def __init__(self, url, raw_url, file_id, total_blocks, total_bytes, headers, completed_blocks = []):
 		self.__headers = headers
+		self.__streaming = False
 		self.__url = url
 		self.__file_id = file_id
 		self.__block_size = BLOCK_SIZE
 		self.__total_blocks = total_blocks
 		self.__total_bytes = total_bytes
 		self.__completed_blocks = completed_blocks
+		self.__output_queue = {}
 		self.__cache_file = vfs.join(CACHE_DIRECTORY, self.__file_id + '.temp')	
 	
 	def is_cached(self, block_number):
 		return block_number in self.__completed_blocks
-		#f = vfs.open(self.__cache_file, "rb")
-		#end_byte = (self.__block_size * block_number) + self.__block_size - 1
-		#f.seek(end_byte, 0)
-		#test = f.read(1)
-		#f.close()
-		#if test: return True
-		#else: return False
-
 		
 	def read_cached_block(self, block_number):
 		f = vfs.open(self.__cache_file, "rb")
@@ -124,8 +118,8 @@ class InputHandler():
 			block = self.__call(start_byte, end_byte)
 			if block: break
 			time.sleep(.25)
-			
-		if block: self.__completed_blocks.append(block_number)
+		if block: 
+			self.__completed_blocks.append(block_number)
 		return block
 		
 	def get_block(self, block_number):
@@ -139,14 +133,22 @@ class InputHandler():
 			return self.read_remote_block(block_number), cached
 		
 	def read_block(self, block_number):
-		cached = self.is_cached(block_number)
+		return self.__output_queue.pop(block_number, False)
+
+		'''cached = self.is_cached(block_number)
 		if cached:
-			return self.read_cached_block(block_number)
+			if self.__streaming: 
+				return self.__output_queue.get(block_number)
+			else:
+				return self.read_cached_block(block_number)
 		else:
 			print "need to reprioritize queue here if delta block is greater then allowed"
 			# need to reprioritize queue here if delta block is greater then allowed
-			return False
+			return False'''
 	
+	def save_block(self, block_number, block):
+		self.__output_queue[block_number] = block
+		
 	def __call(self, start_byte, end_byte):
 		r = 'bytes=%s-%s' % (start_byte, end_byte)
 		#ADDON.log("Requesting remote bytes: %s" % r, LOG_LEVEL.STANDARD)
@@ -230,17 +232,17 @@ class Transmogrifier():
 		block, cached = self.Input.get_block(block_number)
 		if not block: 
 			return [False, block_number]
-		
-		#if cached:	
-		#	self.Output.increment_counter()
-		#else:
-		offset_byte = block_number * self.block_size
-		self.Output.queue_block(block, offset_byte, block_number)
-		self.cached_bytes += len(block)
-		percent, delta, kbs = self.calculate_progress()
-		self.cached_blocks += 1
-		set_property(self.file_id +'.status', json.dumps({'id': self.id, 'total_bytes': self.total_bytes, 'cached_bytes': self.cached_bytes, 'cached_blocks': self.cached_blocks, 'total_blocks': self.total_blocks, 'percent': percent, 'speed': kbs}))
-		ADDON.log("Progress: %s%s %s/%s %s KBs" % (percent, '%', self.cached_bytes, self.total_bytes, kbs), LOG_LEVEL.STANDARD)
+
+		if self.video_type == 'stream':
+			self.Input.save_block(block_number, block)
+		else:
+			offset_byte = block_number * self.block_size
+			self.Output.queue_block(block, offset_byte, block_number)
+			self.cached_bytes += len(block)
+			percent, delta, kbs = self.calculate_progress()
+			self.cached_blocks += 1
+			set_property(self.file_id +'.status', json.dumps({'id': self.id, 'total_bytes': self.total_bytes, 'cached_bytes': self.cached_bytes, 'cached_blocks': self.cached_blocks, 'total_blocks': self.total_blocks, 'percent': percent, 'speed': kbs}))
+			ADDON.log("Progress: %s%s %s/%s %s KBs" % (percent, '%', self.cached_bytes, self.total_bytes, kbs), LOG_LEVEL.STANDARD)
 		return [True, block_number]
 			
 			
@@ -296,24 +298,27 @@ class Transmogrifier():
 			ADDON.raise_notify(ADDON_NAME, "Unable to download source, try another")
 		
 	def stream(self):
-		self.state_file = vfs.join(WORK_DIRECTORY, self.file_id + '.state')
-		completed_blocks = []
-		if vfs.exists(self.state_file):
-			temp = ADDON.load_data(self.state_file)
-			if int(temp['total_blocks']) == self.total_blocks:
-				completed_blocks = temp['completed_blocks']
-		self.Output = OutputHandler(self.video_type, self.filename, self.file_id, self.total_blocks, completed_blocks=completed_blocks)
-		self.Input = InputHandler(self.url, self.raw_url, self.file_id, self.total_blocks, self.total_bytes, self.__headers, completed_blocks=completed_blocks)
-		self.processor = Thread(target=self.Output.process_queue)
-		self.processor.start()
+		#self.state_file = vfs.join(WORK_DIRECTORY, self.file_id + '.state')
+		#completed_blocks = []
+		#if vfs.exists(self.state_file):
+		#	temp = ADDON.load_data(self.state_file)
+		#	if int(temp['total_blocks']) == self.total_blocks:
+		#		completed_blocks = temp['completed_blocks']
+		#self.Output = OutputHandler(self.video_type, self.filename, self.file_id, self.total_blocks, completed_blocks=completed_blocks)
+		self.Input = InputHandler(self.url, self.raw_url, self.file_id, self.total_blocks, self.total_bytes, self.__headers)
+		self.Input.__streaming = True
+		#self.processor = Thread(target=self.Output.process_queue)
+		#self.processor.start()
 		self.started = time.time()
 		for block_number in range(0, self.total_blocks+1):
 			self.Pool.queueTask(self.transmogrify, block_number, block_number, self.transmogrified)
 		return True
 
-	def seek(self):
-		self.Input = InputHandler(self.url, self.file_id, self.total_blocks, self.total_bytes, self.__headers, completed_blocks=completed_blocks)
-	
+	def seek(self, start_byte):
+		print start_byte
+		self.Input = InputHandler(self.url, self.file_id, self.total_blocks, self.total_bytes, self.__headers)
+		self.Input.__streaming = True
+		
 	def read_block(self, start_byte=0):
 		end_byte = (start_byte + self.block_size) - 1
 		if end_byte > self.total_bytes: end_byte = self.total_bytes

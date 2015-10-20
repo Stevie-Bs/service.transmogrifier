@@ -11,6 +11,7 @@ import json
 from threading import Thread
 #from multiprocessing import Pipe
 from dudehere.routines import *
+from dudehere.routines.vfs import VFSClass
 from dudehere.routines.threadpool import ThreadPool, MyPriorityQueue
 from BaseHTTPServer import HTTPServer
 from resources.lib.common import *
@@ -63,10 +64,19 @@ class Service(xbmc.Player):
 			return name, url, raw_url, id, file_id, video_type, save_dir
 		else:
 			return False, False, False, False, False, False, False
+	
+	def clear_cache(self):
+		vfs = VFSClass()
+		ADDON.log("Clearing download cache...")
+		files = vfs.ls(WORK_DIRECTORY, pattern='state$|temp$')
+		for foo in files[1]:
+			path = vfs.join(WORK_DIRECTORY, foo)
+			vfs.rm(path, quiet=True)
 		
 	def start(self):
 		ADDON.log("Service starting...", 1)
 		monitor = xbmc.Monitor()
+		if ADDON.get_setting('clear_cache') == "true": self.clear_cache()
 		ADDON.log("Waiting to Transmogrify...",1)
 		if ADDON.get_setting('network_bind') == 'Localhost':
 			address = "127.0.0.1"

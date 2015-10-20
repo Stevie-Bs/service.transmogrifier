@@ -40,8 +40,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 		return arguments, data, path
 	
 
-	def log_message(self, format, *args):
-		self.log_file.write("%s - - [%s] %s\n" % (self.client_address[0], self.log_date_time_string(), format%args))
+	#def log_message(self, format, *args):
+	#	self.log_file.write("%s - - [%s] %s\n" % (self.client_address[0], self.log_date_time_string(), format%args))
 	
 	def _send_response(self, content, code=200, mime="application/json", headers=None):
 		self.send_response(code)
@@ -73,7 +73,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 		#cookies = {}
 		#if 'cookie' in self.headers:
 		#	cookies = {e.split('=')[0]: e.split('=')[1] for e in self.headers['cookie'].split(';')}
-		try:
+		if True: #try:
 			if arguments[1] == 'query':
 				if arguments[2] == 'log':
 					logfile = vfs.join('special://logpath', 'kodi.log')
@@ -134,6 +134,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 				TM.get_target_info()
 				file_size = TM.total_bytes
 				current_byte = 0
+				print str(self.headers)
 				try:
 					range_reqeust = str(self.headers.getheader("Range"))
 					temp=range_reqeust.split("=")[1].split("-")
@@ -152,24 +153,26 @@ class RequestHandler(BaseHTTPRequestHandler):
 					TM.stream()
 					set_property("stream_started", "true")
 				else:
-					TM.seek()
+					TM.seek(current_byte)
+				time.sleep(5)
 				while True:
 					try:
 						block, end_byte = TM.read_block(start_byte=current_byte)
-						print "stream %s - %s / %s" % (current_byte, end_byte, file_size)
+						print end_byte
 						if block is not False:
 							current_byte = end_byte + 1
 							self.wfile.write(block)
 							if end_byte >= file_size:
 								break
 						else:
-							time.sleep(.1)
+							break
+							#time.sleep(.15)
 					except Exception, e:
 						print e
 						break
 				del TM
-				set_property("stream_started", "false")
-					#self.wfile.close()
+				#set_property("stream_started", "false")
+				self.wfile.close()
 		
 			else:
 				if self.path=='/':
@@ -207,10 +210,10 @@ class RequestHandler(BaseHTTPRequestHandler):
 				self.wfile.close()
 				return True
 			return True
-		except IOError:
-			self.send_error(500,'Internal Server Error')
-			self.wfile.close()
-			return False
+		#except IOError:
+		#	self.send_error(500,'Internal Server Error')
+		#	self.wfile.close()
+		#	return False
 		self.wfile.close()
 		
 	def do_POST(self):
