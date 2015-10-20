@@ -43,7 +43,7 @@ class Service(xbmc.Player):
 
 	def poll_queue(self):
 		if ADDON.get_setting('enable_transmogrifier')=='false': return False, False, False, False, False
-		SQL = "SELECT filename, url, id, video_type, raw_url FROM queue WHERE status=1 ORDER BY priority, id ASC LIMIT 1"
+		SQL = "SELECT filename, url, id, video_type, raw_url, save_dir FROM queue WHERE status=1 ORDER BY priority, id ASC LIMIT 1"
 		row = DB.query(SQL)
 		if row:
 			name = row[0]
@@ -51,6 +51,7 @@ class Service(xbmc.Player):
 			video_type = row[3]
 			id = row[2]
 			raw_url = row[4]
+			save_dir = row[5]
 			file_id = hashlib.md5(url).hexdigest()
 			if raw_url and not url:
 				source = urlresolver.HostedMediaFile(url=raw_url)
@@ -59,9 +60,9 @@ class Service(xbmc.Player):
 			DB.commit()
 			message = "Queued: %s" % name
 			ADDON.raise_notify(ADDON_NAME, message)
-			return name, url, raw_url, id, file_id, video_type
+			return name, url, raw_url, id, file_id, video_type, save_dir
 		else:
-			return False, False, False, False, False, False
+			return False, False, False, False, False, False, False
 		
 	def start(self):
 		ADDON.log("Service starting...", 1)
@@ -80,12 +81,12 @@ class Service(xbmc.Player):
 		while True:
 			if monitor.waitForAbort(1):
 				break
-			filename, url, raw_url, id, file_id, video_type = self.poll_queue()
+			filename, url, raw_url, id, file_id, video_type, save_dir = self.poll_queue()
 			if id:
 				ADDON.log("Starting to Transmogrify: %s" % filename,1)
 				self.id=id
 				started = time.time()
-				TM = Transmogrifier(id, url, raw_url, filename, file_id, video_type=video_type)
+				TM = Transmogrifier(id, url, raw_url, filename, file_id, video_type=video_type, save_dir=save_dir)
 				TM.start()
 				if get_property("abort_all")=="true":
 					DB.execute("UPDATE queue SET status=0 WHERE id=?", [self.id])

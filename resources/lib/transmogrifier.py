@@ -11,7 +11,7 @@ from resources.lib.common import *
 
 
 class OutputHandler():
-	def __init__(self, video_type, filename, file_id, total_blocks, completed_blocks = [], extension='avi'):
+	def __init__(self, video_type, filename, file_id, total_blocks, completed_blocks = [], extension='avi', save_dir=False):
 		self.__abort = False
 		self.__block_counter = 0
 		self.__video_type = video_type
@@ -23,9 +23,11 @@ class OutputHandler():
 		self.cache_file = vfs.join(WORK_DIRECTORY, self.__file_id + '.temp')
 		self.state_file = vfs.join(WORK_DIRECTORY, self.__file_id + '.state')
 		if video_type=='tvshow':
-			self.output_file = vfs.join(TVSHOW_DIRECTORY, vfs.clean_file_name(self.__filename) + '.' + extension)
+			save_dir = save_dir if save_dir else TVSHOW_DIRECTORY
+			self.output_file = vfs.join(save_dir, vfs.clean_file_name(self.__filename) + '.' + extension)
 		elif video_type=='movie':
-			self.output_file = vfs.join(MOVIE_DIRECTORY, vfs.clean_file_name(self.__filename) + '.' + extension)
+			save_dir = save_dir if save_dir else MOVIE_DIRECTORY
+			self.output_file = vfs.join(save_dir, vfs.clean_file_name(self.__filename) + '.' + extension)
 		self.open()
 
 	def abort_all(self):
@@ -162,7 +164,7 @@ class InputHandler():
 		return block
 		
 class Transmogrifier():
-	def __init__(self, id, url, raw_url, filename, file_id, video_type='tvshow'):
+	def __init__(self, id, url, raw_url, filename, file_id, video_type='tvshow', save_dir=False):
 		self.win = xbmcgui.Window(10000)
 		self.threads = NUMBER_THREADS
 		self.block_size = BLOCK_SIZE
@@ -177,6 +179,7 @@ class Transmogrifier():
 		self.filename = filename
 		self.raw_url = raw_url
 		self.file_id = file_id
+		self.save_dir = save_dir
 		self.video_type = video_type
 		self.Pool = ThreadPool(NUMBER_THREADS)
 		self.completed = []
@@ -272,7 +275,7 @@ class Transmogrifier():
 				temp = ADDON.load_data(self.state_file)
 				if int(temp['total_blocks']) == self.total_blocks:
 					completed_blocks = temp['completed_blocks']
-			self.Output = OutputHandler(self.video_type, self.filename, self.file_id, self.total_blocks, completed_blocks=completed_blocks, extension=self.extension)
+			self.Output = OutputHandler(self.video_type, self.filename, self.file_id, self.total_blocks, completed_blocks=completed_blocks, extension=self.extension, save_dir=self.save_dir)
 			self.Input = InputHandler(self.url, self.raw_url, self.file_id, self.total_blocks, self.total_bytes, self.__headers, completed_blocks=completed_blocks)
 			self.processor = Thread(target=self.Output.process_queue)
 			self.processor.start()

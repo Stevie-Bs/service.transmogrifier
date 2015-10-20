@@ -4,21 +4,22 @@ if ADDON.get_setting('database_mysql')=='true':
 	from dudehere.routines.database import MySQLDatabase as DatabaseAPI
 	class MyDatabaseAPI(DatabaseAPI):
 		def _initialize(self):
-			SQL = '''CREATE TABLE IF NOT EXISTS `queue` (
-					"id" INTEGER PRIMARY KEY AUTOINCREMENT, 
-					"priority" INTEGER DEFAULT (10), 
-					"video_type" TEXT, 
-					"filename" TEXT,
-					"imdb_id" TEXT,
-					"season" INTEGER,
-					"episode" INTEGER,
-					"title" TEXT,
-					"fileid" TEXT, 
-					"raw_url" TEXT, 
-					"url" TEXT, 
-					"save_dir" TEXT,
-					"status" INTEGER DEFAULT (1)
-					)'''
+			SQL = '''CREATE TABLE IF NOT EXISTS`queue` (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`priority` int(11) DEFAULT '10',
+					`video_type` varchar(10) DEFAULT NULL,
+					`filename` varchar(150) NOT NULL,
+					`imdb_id` varchar(15) DEFAULT NULL,
+					`season` tinyint(3) DEFAULT NULL,
+					`episode` tinyint(3) DEFAULT NULL,
+					`title` varchar(225) DEFAULT NULL,
+					`raw_url` varchar(225) DEFAULT NULL,
+					`url` varchar(225) DEFAULT NULL,
+					`save_dir` varchar(225) DEFAULT NULL,
+					`status` tinyint(4) DEFAULT NULL,
+					PRIMARY KEY (`id`)
+					) ENGINE=InnoDB;
+			'''
 			self.execute(SQL)
 			self.commit()
 			ADDON.addon.setSetting('database_init_mysql', 'true')
@@ -47,7 +48,8 @@ else:
 					"url" TEXT, 
 					"save_dir" TEXT,
 					"status" INTEGER DEFAULT (1)
-					)'''
+					)
+			'''
 			self.execute(SQL)
 			self.commit()
 			ADDON.addon.setSetting('database_init_sqlite', 'true')
