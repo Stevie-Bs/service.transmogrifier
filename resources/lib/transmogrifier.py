@@ -323,9 +323,9 @@ class Transmogrifier():
 		block_number = self.get_block_number_from_byte(start_byte)
 		block = self.Input.read_block(block_number)
 		if block:
-			return block, end_byte
+			return block, end_byte, block_number
 		else:
-			return False, start_byte
+			return False, start_byte, block_number
 
 	def get_block_number_from_byte(self, start_byte):
 		block_number = int(math.floor(float(start_byte) / self.block_size))

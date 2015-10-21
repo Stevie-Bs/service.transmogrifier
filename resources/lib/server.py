@@ -154,26 +154,27 @@ class RequestHandler(BaseHTTPRequestHandler):
 					set_property("stream_started", "true")
 				else:
 					TM.seek(current_byte)
-				delta = 0
 				while True:
 					try:
-						block, end_byte = TM.read_block(start_byte=current_byte)
-						print end_byte
+						block, end_byte, block_number = TM.read_block(start_byte=current_byte)
+						print "%s %s" % (block_number, end_byte)
 						if block is not False:
 							current_byte = end_byte + 1
 							self.wfile.write(block)
 							if end_byte >= file_size:
 								break
 						else:
-							delta += .1
+							try:
+								self.wfile.flush()
+							except:
+								break
 							time.sleep(.1)
-							if delta >= 5: break
 					except Exception, e:
-						print e.code
+						print e
 						break
 				del TM
 				#set_property("stream_started", "false")
-				self.wfile.close()
+				#self.wfile.close()
 		
 			else:
 				if self.path=='/':
