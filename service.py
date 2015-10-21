@@ -44,7 +44,7 @@ class Service(xbmc.Player):
 
 	def poll_queue(self):
 		if ADDON.get_setting('enable_transmogrifier')=='false': return False, False, False, False, False
-		SQL = "SELECT filename, url, id, video_type, raw_url, save_dir FROM queue WHERE status=1 ORDER BY priority, id ASC LIMIT 1"
+		SQL = "SELECT filename, url, id, video_type, raw_url, save_dir FROM queue WHERE status=1 ORDER BY priority DESC, id LIMIT 1"
 		row = DB.query(SQL)
 		if row:
 			name = row[0]
@@ -66,17 +66,20 @@ class Service(xbmc.Player):
 			return False, False, False, False, False, False, False
 	
 	def clear_cache(self):
-		vfs = VFSClass()
-		ADDON.log("Clearing download cache...")
-		files = vfs.ls(WORK_DIRECTORY, pattern='state$|temp$')
-		for foo in files[1]:
-			path = vfs.join(WORK_DIRECTORY, foo)
-			vfs.rm(path, quiet=True)
-		
+		if ADDON.get_setting('clear_cache') == "true":
+			vfs = VFSClass()
+			ADDON.log("Clearing download cache...")
+			files = vfs.ls(WORK_DIRECTORY, pattern='state$|temp$')
+			for foo in files[1]:
+				path = vfs.join(WORK_DIRECTORY, foo)
+				vfs.rm(path, quiet=True)
+		ADDON.log("Clearing orphaned jobs...")
+		DB.execute("UPDATE queue SET status=-1 WHERE status=2")
+		DB.commit()
 	def start(self):
 		ADDON.log("Service starting...", 1)
 		monitor = xbmc.Monitor()
-		if ADDON.get_setting('clear_cache') == "true": self.clear_cache()
+		self.clear_cache()
 		ADDON.log("Waiting to Transmogrify...",1)
 		if ADDON.get_setting('network_bind') == 'Localhost':
 			address = "127.0.0.1"

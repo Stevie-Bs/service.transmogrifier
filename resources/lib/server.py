@@ -40,8 +40,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 		return arguments, data, path
 	
 
-	#def log_message(self, format, *args):
-	#	self.log_file.write("%s - - [%s] %s\n" % (self.client_address[0], self.log_date_time_string(), format%args))
+	def log_message(self, format, *args):
+		self.log_file.write("%s - - [%s] %s\n" % (self.client_address[0], self.log_date_time_string(), format%args))
 	
 	def _send_response(self, content, code=200, mime="application/json", headers=None):
 		self.send_response(code)
@@ -69,7 +69,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 		arguments, data, path = self.process_cgi()
 		#print self.headers
 		#print arguments
-		print data
+		#print data
 		#cookies = {}
 		#if 'cookie' in self.headers:
 		#	cookies = {e.split('=')[0]: e.split('=')[1] for e in self.headers['cookie'].split(';')}
@@ -312,7 +312,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 			elif data['method'] == 'queue':
 				try:
 					DB=MyDatabaseAPI(DB_FILE)
-					rows = DB.query("SELECT id, video_type, filename, status, raw_url, fileid FROM queue ORDER BY id ASC", force_double_array=True)
+					rows = DB.query("SELECT id, video_type, filename, status, raw_url, fileid, priority FROM queue ORDER BY priority DESC, id", force_double_array=True)
 					DB.disconnect()
 					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'queue': rows})
 				except:
