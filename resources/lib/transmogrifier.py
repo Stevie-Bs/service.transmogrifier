@@ -297,27 +297,25 @@ class Transmogrifier():
 			ADDON.log('Invalid url, sorry!', LOG_LEVEL.VERBOSE)
 			ADDON.raise_notify(ADDON_NAME, "Unable to download source, try another")
 		
-	def stream(self):
-		#self.state_file = vfs.join(WORK_DIRECTORY, self.file_id + '.state')
-		#completed_blocks = []
-		#if vfs.exists(self.state_file):
-		#	temp = ADDON.load_data(self.state_file)
-		#	if int(temp['total_blocks']) == self.total_blocks:
-		#		completed_blocks = temp['completed_blocks']
-		#self.Output = OutputHandler(self.video_type, self.filename, self.file_id, self.total_blocks, completed_blocks=completed_blocks)
+	def stream(self, start_byte=0):
+		first_block = self.get_block_number_from_byte(start_byte)
 		self.Input = InputHandler(self.url, self.raw_url, self.file_id, self.total_blocks, self.total_bytes, self.__headers)
 		self.Input.__streaming = True
-		#self.processor = Thread(target=self.Output.process_queue)
-		#self.processor.start()
 		self.started = time.time()
-		for block_number in range(0, self.total_blocks+1):
+		for block_number in range(first_block, self.total_blocks+1):
 			self.Pool.queueTask(self.transmogrify, block_number, block_number, self.transmogrified)
 		return True
 
 	def seek(self, start_byte):
 		print start_byte
-		self.Input = InputHandler(self.url, self.file_id, self.total_blocks, self.total_bytes, self.__headers)
+		first_block = self.get_block_number_from_byte(start_byte)
+		print first_block
+		self.Pool.__tasks = MyPriorityQueue()
+		self.Input = InputHandler(self.url, self.raw_url, self.file_id, self.total_blocks, self.total_bytes, self.__headers)
 		self.Input.__streaming = True
+		for block_number in range(first_block, self.total_blocks+1):
+			if self.Input.is_cached(block_number) is False:
+				self.Pool.queueTask(self.transmogrify, block_number, block_number, self.transmogrified)
 		
 	def read_block(self, start_byte=0):
 		end_byte = (start_byte + self.block_size) - 1

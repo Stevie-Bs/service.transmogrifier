@@ -69,7 +69,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 		arguments, data, path = self.process_cgi()
 		#print self.headers
 		#print arguments
-		#print data
+		print data
 		#cookies = {}
 		#if 'cookie' in self.headers:
 		#	cookies = {e.split('=')[0]: e.split('=')[1] for e in self.headers['cookie'].split(';')}
@@ -150,11 +150,11 @@ class RequestHandler(BaseHTTPRequestHandler):
 				self.end_headers()
 				
 				if not get_property("stream_started"):
-					TM.stream()
+					TM.stream(current_byte)
 					set_property("stream_started", "true")
 				else:
 					TM.seek(current_byte)
-				time.sleep(5)
+				delta = 0
 				while True:
 					try:
 						block, end_byte = TM.read_block(start_byte=current_byte)
@@ -165,10 +165,11 @@ class RequestHandler(BaseHTTPRequestHandler):
 							if end_byte >= file_size:
 								break
 						else:
-							break
-							#time.sleep(.15)
+							delta += .1
+							time.sleep(.1)
+							if delta >= 5: break
 					except Exception, e:
-						print e
+						print e.code
 						break
 				del TM
 				#set_property("stream_started", "false")
