@@ -104,10 +104,10 @@ class Service(xbmc.Player):
 			address = "0.0.0.0"
 		ADDON.log("Launching WebInterface on: %s:%s" % (address, CONTROL_PORT))
 		socket.setdefaulttimeout(10)
-		httd = ThreadedHTTPServer
-		server = httd((address, CONTROL_PORT), RequestHandler)
-		webserver = Thread(target=server.serve_forever)
-		webserver.start()
+		server_class = ThreadedHTTPServer
+		httpd = server_class((address, CONTROL_PORT), RequestHandler)
+		#webserver = Thread(target=server.serve_forever)
+		#webserver.start()
 		#self.listener =  Pipe()
 			
 		while True:
@@ -125,8 +125,8 @@ class Service(xbmc.Player):
 				else:
 					DB.execute("UPDATE queue SET status=3 WHERE id=?", [self.id])
 				DB.commit()
-
-		server.socket.close()
+			httpd.handle_request()
+		httpd.socket.close()
 		ADDON.log("Service stopping...", 1)
 
 if __name__ == '__main__':
