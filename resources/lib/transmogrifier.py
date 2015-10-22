@@ -96,6 +96,7 @@ class InputHandler():
 		self.__cache_file = vfs.join(CACHE_DIRECTORY, self.__file_id + '.temp')	
 	
 	def is_cached(self, block_number):
+		if get_property('streaming.started'): return False
 		return block_number in self.__completed_blocks
 		
 	def read_cached_block(self, block_number):
@@ -307,9 +308,9 @@ class Transmogrifier():
 		return True
 
 	def seek(self, start_byte):
-		print start_byte
+		ADDON.log("Seek to byte %s " % start_byte, LOG_LEVEL.VERBOSE)
 		first_block = self.get_block_number_from_byte(start_byte)
-		print first_block
+		ADDON.log("Seek to block %s " % first_block, LOG_LEVEL.VERBOSE)
 		self.Pool.__tasks = MyPriorityQueue()
 		self.Input = InputHandler(self.url, self.raw_url, self.file_id, self.total_blocks, self.total_bytes, self.__headers)
 		self.Input.__streaming = True

@@ -1,4 +1,5 @@
 import json
+import sys
 import cgi
 import re
 import hashlib
@@ -42,15 +43,24 @@ class RequestHandler(BaseHTTPRequestHandler):
 		arguments = path.split('/')
 		return arguments, data, path
 
-	'''def finish(self,*args,**kw):
+	def finish(self,*args,**kw):
 		try:
 			if not self.wfile.closed:
 				self.wfile.flush()
 				self.wfile.close()
 		except socket.error:
 			pass
-		self.rfile.close()'''
+		self.rfile.close()
 	
+	def handle(self):
+		"""Handles a request ignoring dropped connections."""
+		try:
+			return BaseHTTPRequestHandler.handle(self)
+		except (socket.error, socket.timeout) as e:
+			self.connection_dropped(e)
+
+	def connection_dropped(self, error, environ=None):
+		print "kodi disconnected"
 
 	#def log_message(self, format, *args):
 	#	self.log_file.write("%s - - [%s] %s\n" % (self.client_address[0], self.log_date_time_string(), format%args))
@@ -79,10 +89,9 @@ class RequestHandler(BaseHTTPRequestHandler):
 			TM.get_target_info()
 			set_property("streaming.total_bytes", TM.total_bytes)
 			set_property("streaming.total_blocks", TM.total_blocks)
-			total_bytes = TM.total_bytes
 			del TM
-		else:
-			total_bytes = int(get_property("streaming.total_bytes"))
+
+		total_bytes = int(get_property("streaming.total_bytes"))
 		self.generate_respose_headers()
 		self._response_headers['Content-Length'] = total_bytes
 		self.send_response(200)
@@ -167,25 +176,22 @@ class RequestHandler(BaseHTTPRequestHandler):
 					end_byte = TM.total_bytes - 1
 				content_range = "%s-%s/%s" % (current_byte, end_byte, TM.total_bytes)
 				self._response_headers['Content-Range'] = content_range
-				try:
-					self.send_response(206)
-					for header in self._response_headers.keys():
-						self.send_header(header, self._response_headers[header])
-					self.end_headers()
-					if not get_property("stream_started"):
-						TM.stream(current_byte)
-						set_property("stream_started", "true")
-					else:
-						TM.seek(current_byte)
-						set_property("abort_streaming", "now")
-					
-					self.send_video(TM, current_byte, TM.total_bytes)
-					
-					del TM
-					#self.wfile.close()
-				except:
-					# socket is dead. Abort sending
-					set_property("abort_streaming", "now")
+				self.send_response(206)
+				for header in self._response_headers.keys():
+					self.send_header(header, self._response_headers[header])
+				self.end_headers()
+				if not get_property("streaming.started"):
+					set_property("streaming.started", "true")
+					ADDON.log("Start streaming at %s bytes" % current_byte, LOG_LEVEL.VERBOSE) 
+					TM.stream(current_byte)
+				else:
+					ADDON.log("Attempt to seek to %s bytes" % current_byte, LOG_LEVEL.VERBOSE) 
+					TM.seek(current_byte)
+					#set_property("streaming.abort", "now")
+				self.send_video(TM, current_byte, TM.total_bytes)
+				
+				del TM
+
 
 		
 			else:
@@ -234,12 +240,12 @@ class RequestHandler(BaseHTTPRequestHandler):
 	
 	def send_video(self, TM, current_byte, total_bytes):
 		while True:
-			if get_property("abort_streaming") == 'now':
-				set_property("abort_streaming", "")
+			if get_property("streaming.abort") == 'now':
+				set_property("streaming.abort", "")
 				break
 			try:
 				block, end_byte, block_number = TM.read_block(start_byte=current_byte)
-				print "read %s %s" % (block_number, end_byte)
+				ADDON.log("Proxy %s %s (block, bytes)" % (block_number, end_byte), LOG_LEVEL.VERBOSE) 
 				if block is not False:
 					current_byte = end_byte + 1
 					self.wfile.write(block)

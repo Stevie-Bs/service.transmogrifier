@@ -9,6 +9,7 @@ import hashlib
 import urlresolver
 import json
 import socket
+import errno
 from threading import Thread
 from SocketServer import ThreadingMixIn
 from dudehere.routines import *
@@ -42,18 +43,23 @@ class Service(xbmc.Player):
 		xbmc.Player.__init__(self, *args, **kwargs)
 	
 	def onPlayBackStarted(self):
-		if get_property('streaming'):
+		if get_property('streaming.started'):
 			ADDON.log("Now I'm playing file id: %s " % get_property('file_id'))
 	
 	def onPlayBackStopped(self):
-		if get_property('streaming'):
+		if get_property('streaming.started'):
 			ADDON.log("Now I'm stopped")
 			ADDON.log("Abort: %s" % get_property('file_id'))
 			set_property("abort_id", get_property('file_id'))
+			time.sleep(0.25)
+			clear_property("abort_id")
 			clear_property('playing')
 			clear_property('file_id')
-			clear_property('streaming_started')
-
+			clear_property('streaming.started')
+			clear_property("streaming.total_bytes")
+			clear_property("streaming.total_blocks")
+			clear_property("streaming.file_id")
+			clear_property("streaming.abort")
 	
 	def onPlayBackEnded(self):
 		self.onPlayBackStopped()
@@ -106,12 +112,12 @@ class Service(xbmc.Player):
 		socket.setdefaulttimeout(10)
 		server_class = ThreadedHTTPServer
 		httpd = server_class((address, CONTROL_PORT), RequestHandler)
-		webserver = Thread(target=httpd.serve_forever)
-		webserver.start()
+		#webserver = Thread(target=httpd.serve_forever)
+		#webserver.start()
 		#self.listener =  Pipe()
 			
 		while True:
-			if monitor.waitForAbort(1):
+			if monitor.waitForAbort(.1):
 				break
 			filename, url, raw_url, id, file_id, video_type, save_dir = self.poll_queue()
 			if id:
@@ -121,17 +127,27 @@ class Service(xbmc.Player):
 				TM = Transmogrifier(id, url, raw_url, filename, file_id, video_type=video_type, save_dir=save_dir)
 				TM.start()
 				if get_property("abort_all")=="true":
-					DB.execute("UPDATE queue SET status=0 WHERE id=?", [self.id])
+					DB.execute("UPDATE queue SET status=-1 WHERE id=?", [self.id])
 				else:
 					DB.execute("UPDATE queue SET status=3 WHERE id=?", [self.id])
 				DB.commit()
-			'''try:
+				del TM
+			try:
 				httpd.handle_request()
-			except:
+			except socket.error, e:
+				if isinstance(e.args, tuple):
+					print "errno is %d" % e[0]
+					if e[0] == errno.EPIPE:
+						print "Detected remote disconnect"
+					else:
+						print e
+				else:
+					print "socket error ", e
 				httpd.socket.close()
-				httpd = server_class((address, CONTROL_PORT), RequestHandler)
-			finally:
-				pass'''
+				break
+			except IOError, e:
+				print "Got IOError: ", e
+				break
 				
 		httpd.socket.close()
 		ADDON.log("Service stopping...", 1)
