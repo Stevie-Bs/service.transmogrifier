@@ -16,6 +16,7 @@ if ADDON.get_setting('database_mysql')=='true':
 					`raw_url` varchar(225) DEFAULT NULL,
 					`url` varchar(225) DEFAULT NULL,
 					`save_dir` varchar(225) DEFAULT NULL,
+					`source_addon` varchar(225) DEFAULT NULL,
 					`status` tinyint(4) DEFAULT NULL,
 					PRIMARY KEY (`id`)
 					) ENGINE=InnoDB;
@@ -47,6 +48,7 @@ else:
 					"raw_url" TEXT, 
 					"url" TEXT, 
 					"save_dir" TEXT,
+					"source_addon", TEXT,
 					"status" INTEGER DEFAULT (1)
 					)
 			'''

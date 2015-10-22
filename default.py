@@ -191,9 +191,9 @@ def view_queue():
 						obj.removeItem(index)
 				except: pass
 			
-			items = [item[2] for item in queue]
+			items = ["%s - %s" % (item[7], item[2]) for item in queue]
 			self.create_list('queue')
-			self.add_object('queue', 3,1,7,4)
+			self.add_object('queue', 3,0,7,5)
 			self.add_list_items('queue', items, selectable=False, call_back=show_status)
 			icon_root = vfs.join(ROOT_PATH, 'resources/www/html/images')
 			for item in queue:

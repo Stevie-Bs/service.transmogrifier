@@ -256,7 +256,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 			if data['method'] == 'enqueue':
 				try:
 					count = len(data['videos'])
-					SQL = "INSERT INTO queue(video_type, filename, save_dir, imdb_id, title, season, episode, raw_url, url, fileid) VALUES(?,?,?,?,?,?,?,?,?,?)"
+					SQL = "INSERT INTO queue(video_type, filename, save_dir, imdb_id, title, season, episode, raw_url, url, fileid, source_addon) VALUES(?,?,?,?,?,?,?,?,?,?,?)"
 					inserts =[]
 					for video in data['videos']:
 						raw_url = video['raw_url']
@@ -271,7 +271,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 						title = video['title'] if 'title' in video.keys() else ''
 						season = video['season'] if 'season' in video.keys() else ''
 						episode = video['episode'] if 'episode' in video.keys() else ''
-						inserts.append((video['type'], video['filename'], save_dir, imdb_id, title, season, episode, raw_url, url, file_id))
+						addon = video['addon'] if 'addon' in video.keys() else ''
+						inserts.append((video['type'], video['filename'], save_dir, imdb_id, title, season, episode, raw_url, url, file_id, addon))
 					DB=MyDatabaseAPI(DB_FILE)
 					DB.execute_many(SQL, inserts)
 					DB.commit()
@@ -315,7 +316,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 			elif data['method'] == 'queue':
 				try:
 					DB=MyDatabaseAPI(DB_FILE)
-					rows = DB.query("SELECT id, video_type, filename, status, raw_url, fileid, priority FROM queue ORDER BY priority DESC, id", force_double_array=True)
+					rows = DB.query("SELECT id, video_type, filename, status, raw_url, fileid, priority, source_addon FROM queue ORDER BY priority DESC, id", force_double_array=True)
 					DB.disconnect()
 					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'queue': rows})
 				except:
