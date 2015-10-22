@@ -313,7 +313,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 			elif data['method'] == 'queue':
 				try:
 					DB=MyDatabaseAPI(DB_FILE)
-					rows = DB.query("SELECT id, video_type, filename, status, raw_url, fileid, priority FROM queue ORDER BY priority DESC, id", force_double_array=True)
+					rows = DB.query("SELECT id, video_type, filename, status, raw_url, fileid, priority, source_addon FROM queue ORDER BY priority DESC, id", force_double_array=True)
 					DB.disconnect()
 					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'queue': rows})
 				except:
