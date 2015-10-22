@@ -187,7 +187,6 @@ class RequestHandler(BaseHTTPRequestHandler):
 				else:
 					ADDON.log("Attempt to seek to %s bytes" % current_byte, LOG_LEVEL.VERBOSE) 
 					TM.seek(current_byte)
-					#set_property("streaming.abort", "now")
 				self.send_video(TM, current_byte, TM.total_bytes)
 				
 				del TM
@@ -245,14 +244,17 @@ class RequestHandler(BaseHTTPRequestHandler):
 				break
 			try:
 				block, end_byte, block_number = TM.read_block(start_byte=current_byte)
-				ADDON.log("Proxy %s %s (block, bytes)" % (block_number, end_byte), LOG_LEVEL.VERBOSE) 
-				if block is not False:
-					current_byte = end_byte + 1
-					self.wfile.write(block)
-					if end_byte >= total_bytes:
-						break
-				else:
+				if get_property("streaming.seek_block") and block_number < int(get_property("streaming.seek_block")):
 					time.sleep(.1)
+				else:
+					if block is not False:
+						ADDON.log("Proxy %s %s (block, bytes)" % (block_number, end_byte), LOG_LEVEL.VERBOSE) 
+						current_byte = end_byte + 1
+						self.wfile.write(block)
+						if end_byte >= total_bytes:
+							break
+					else:
+						time.sleep(.1)
 			except Exception, e:
 				print e
 				break

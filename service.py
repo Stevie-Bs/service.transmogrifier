@@ -60,6 +60,7 @@ class Service(xbmc.Player):
 			clear_property("streaming.total_blocks")
 			clear_property("streaming.file_id")
 			clear_property("streaming.abort")
+			clear_property("streaming.seek_block")
 	
 	def onPlayBackEnded(self):
 		self.onPlayBackStopped()

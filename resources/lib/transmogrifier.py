@@ -4,6 +4,7 @@ import time
 import math
 import urllib2
 import random
+import Queue
 from threading import Thread
 from dudehere.routines import *
 from dudehere.routines.threadpool import ThreadPool, MyPriorityQueue
@@ -114,6 +115,7 @@ class InputHandler():
 		attempt = 0
 		block = False
 		while attempt < RETRY_ATTEMPTS:
+			if get_property("streaming.seek_block") and block_number < int(get_property("streaming.seek_block")): return False
 			attempt += 1
 			ADDON.log("block %s attempt %s" % (block_number, attempt), LOG_LEVEL.STANDARD)
 			block = self.__call(start_byte, end_byte)
@@ -226,6 +228,7 @@ class Transmogrifier():
 			self.__aborting = True
 		
 	def transmogrify(self, block_number):
+		if get_property("streaming.seek_block") and block_number < int(get_property("streaming.seek_block")): return [True, block_number]
 		if self.check_abort(): 
 			print "abort all"
 			self.abort_all()
@@ -254,6 +257,7 @@ class Transmogrifier():
 		status = result[0]
 		block_number = result[1]
 		if status is False:
+			if get_property("streaming.seek_block") and block_number < int(get_property("streaming.seek_block")): return
 			ADDON.log("Requeue %s" % block_number, LOG_LEVEL.STANDARD)
 			self.Pool.queueTask(self.transmogrify, block_number, block_number, self.transmogrified)
 		self.active_threads -= 1
@@ -311,12 +315,14 @@ class Transmogrifier():
 		ADDON.log("Seek to byte %s " % start_byte, LOG_LEVEL.VERBOSE)
 		first_block = self.get_block_number_from_byte(start_byte)
 		ADDON.log("Seek to block %s " % first_block, LOG_LEVEL.VERBOSE)
-		self.Pool.__tasks = MyPriorityQueue()
+		set_property("streaming.seek_block", str(first_block))
+		self.Pool.emptyQueue()
+		#self.Pool.__tasks = Queue.Queue()
 		self.Input = InputHandler(self.url, self.raw_url, self.file_id, self.total_blocks, self.total_bytes, self.__headers)
 		self.Input.__streaming = True
 		for block_number in range(first_block, self.total_blocks+1):
-			if self.Input.is_cached(block_number) is False:
-				self.Pool.queueTask(self.transmogrify, block_number, block_number, self.transmogrified)
+			#if self.Input.is_cached(block_number) is False:
+			self.Pool.queueTask(self.transmogrify, block_number, block_number, self.transmogrified)
 		
 	def read_block(self, start_byte=0):
 		end_byte = (start_byte + self.block_size) - 1
