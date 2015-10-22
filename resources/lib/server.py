@@ -5,6 +5,7 @@ import hashlib
 import time
 import uuid
 import base64
+import datetime
 from os import curdir, sep
 from urlparse import urlparse
 from BaseHTTPServer import BaseHTTPRequestHandler
@@ -13,7 +14,6 @@ from dudehere.routines.vfs import VFSClass
 from resources.lib.common import *
 from resources.lib.database import *
 from resources.lib.transmogrifier import OutputHandler, Transmogrifier
-from Cookie import SimpleCookie
 vfs = VFSClass()
 LOG_FILE = vfs.join(DATA_PATH, 'access.log')
 ADDON.log("Setting Access log to: %s" % LOG_FILE)
@@ -57,22 +57,38 @@ class RequestHandler(BaseHTTPRequestHandler):
 	
 	def do_HEAD(self):
 		arguments, data, path = self.process_cgi()
+		file_id =  arguments[3]
+		set_property("streaming.file_id", file_id)
+		streaming_url = base64.b64decode(arguments[2])
+		set_property("streaming.url", streaming_url)
+		headers = self.generate_respose_headers()
 		self.send_response(200)
-		self.send_header("Content-Type", "video/mp4")
-		self.send_header("Accept-Ranges","bytes")
-		#file_id = arguments[3]
-		#self.send_header("Set-Cookie", "file_id=" + file_id)
+		for header in self._response_headers.keys():
+			self.send_header(header, self._response_headers[header])
 		self.end_headers()
-
+	
+	def generate_respose_headers(self):
+		self._response_headers = {}
+		now = datetime.datetime.utcnow()
+		self._response_headers['Date'] = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
+		self._response_headers['Server'] = 'Transmogrifier'
+		self._response_headers['Last-Modified'] = "Wed, 21 Feb 2000 08:43:39 GMT"
+		self._response_headers['ETag'] = get_property("streaming.file_id")
+		self._response_headers['Accept-Ranges'] = 'bytes'
+		self._response_headers['Content-Length'] = 0
+		self._response_headers['Content-Type'] = "video/x-msvideo"
+		TM = Transmogrifier(0, get_property("streaming.url"), '', 'stream.avi', get_property("streaming.file_id"), video_type='stream')
+		TM.get_target_info()
+		self._response_headers['Content-Length'] = TM.total_bytes
+		set_property("streaming.total_bytes", TM.total_bytes)
+		set_property("streaming.total_blocks", TM.total_blocks)
+		del TM
 	
 	def do_GET(self):
 		arguments, data, path = self.process_cgi()
 		#print self.headers
 		#print arguments
 		#print data
-		#cookies = {}
-		#if 'cookie' in self.headers:
-		#	cookies = {e.split('=')[0]: e.split('=')[1] for e in self.headers['cookie'].split(';')}
 		if True: #try:
 			if arguments[1] == 'query':
 				if arguments[2] == 'log':
@@ -114,41 +130,28 @@ class RequestHandler(BaseHTTPRequestHandler):
 				hash_url = arguments[2]
 				file_id = arguments[3]
 				url = base64.b64decode(hash_url)
-				#if 'file_id' in cookies:
-				#	file_id = cookies['file_id']
-				self.send_response(206)
-				self.send_header("Pragma", "no-cache")
-				self.send_header("Last-Modified","Wed, 21 Feb 2000 08:43:39 GMT")
-				self.send_header("Expires", "0")
-				self.send_header("ETag",file_id)
-				self.send_header("Accept-Ranges","bytes")
-				self.send_header("Cache-Control","public, must-revalidate")
-				self.send_header("Cache-Control","no-cache")
-				self.send_header("Content-Type", "video/avi")
-				self.send_header("Features","seekable,stridable")
-				self.send_header("Connection", 'close')
-				self.send_header("client-id","12345")
-				self.send_header("Content-Disposition", 'inline; filename="stream.avi"')
-				self.send_header("Set-Cookie", "file_id=" + file_id)
-				TM = Transmogrifier(0, url, '', 'stream.avi', file_id, video_type='stream')
-				TM.get_target_info()
-				file_size = TM.total_bytes
+				now = datetime.datetime.utcnow()
+				self._response_headers['Date'] = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
+
+				TM = Transmogrifier(0, get_property("streaming.url"), '', 'stream.avi', get_property("streaming.file_id"), video_type='stream')
+				TM.total_bytes = int(get_property("streaming.total_bytes")
+				TM.total_blocks = int(get_property("streaming.total_blocks")
 				current_byte = 0
-				print str(self.headers)
 				try:
 					range_reqeust = str(self.headers.getheader("Range"))
 					temp=range_reqeust.split("=")[1].split("-")
 					current_byte=int(temp[0])
-					end_byte = file_size - 1 if temp[1] == "" else temp[1]
+					end_byte = TM.total_bytes - 1 if temp[1] == "" else temp[1]
 				except:
 					current_byte = 0
-					end_byte = file_size - 1
-				content_range = "%s-%s/%s" % (current_byte, end_byte, file_size)
-				print content_range
-				self.send_header("Content-Length", str(file_size))
-				self.send_header("Content-Range",content_range)
+					end_byte = TM.total_bytes - 1
+				content_range = "%s-%s/%s" % (current_byte, end_byte, TM.total_bytes)
+				self._response_headers['Content-Range'] = content_range
+				self.send_response(206)
+				for header in self._response_headers.keys():
+					self.send_header(header, self._response_headers[header])
 				self.end_headers()
-				
+				'''
 				if not get_property("stream_started"):
 					TM.stream(current_byte)
 					set_property("stream_started", "true")
@@ -174,7 +177,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 						break
 				del TM
 				#set_property("stream_started", "false")
-				#self.wfile.close()
+				#self.wfile.close()'''
 		
 			else:
 				if self.path=='/':
