@@ -31,7 +31,7 @@ def get_property(k):
 	if p == 'true': return True
 	return p
 
-class RequestHandler(BaseHTTPRequestHandler, ThreadingMixIn):
+class RequestHandler(BaseHTTPRequestHandler):
 
 	log_file = vfs.open(LOG_FILE, 'w')
 	def process_cgi(self):
@@ -42,14 +42,14 @@ class RequestHandler(BaseHTTPRequestHandler, ThreadingMixIn):
 		arguments = path.split('/')
 		return arguments, data, path
 
-	def finish(self,*args,**kw):
+	'''def finish(self,*args,**kw):
 		try:
 			if not self.wfile.closed:
 				self.wfile.flush()
 				self.wfile.close()
 		except socket.error:
 			pass
-		self.rfile.close()
+		self.rfile.close()'''
 	
 
 	#def log_message(self, format, *args):
