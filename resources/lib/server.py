@@ -6,8 +6,10 @@ import time
 import uuid
 import base64
 import datetime
+import socket
 from os import curdir, sep
 from urlparse import urlparse
+from SocketServer import ThreadingMixIn
 from BaseHTTPServer import BaseHTTPRequestHandler
 from dudehere.routines import *
 from dudehere.routines.vfs import VFSClass
@@ -29,7 +31,8 @@ def get_property(k):
 	if p == 'true': return True
 	return p
 
-class RequestHandler(BaseHTTPRequestHandler):
+class RequestHandler(BaseHTTPRequestHandler, ThreadingMixIn):
+
 	log_file = vfs.open(LOG_FILE, 'w')
 	def process_cgi(self):
 		parts = urlparse(self.path)
@@ -38,10 +41,19 @@ class RequestHandler(BaseHTTPRequestHandler):
 		data = cgi.parse_qs(query, keep_blank_values=True)
 		arguments = path.split('/')
 		return arguments, data, path
+
+	def finish(self,*args,**kw):
+		try:
+			if not self.wfile.closed:
+				self.wfile.flush()
+				self.wfile.close()
+		except socket.error:
+			pass
+		self.rfile.close()
 	
 
-	def log_message(self, format, *args):
-		self.log_file.write("%s - - [%s] %s\n" % (self.client_address[0], self.log_date_time_string(), format%args))
+	#def log_message(self, format, *args):
+	#	self.log_file.write("%s - - [%s] %s\n" % (self.client_address[0], self.log_date_time_string(), format%args))
 	
 	def _send_response(self, content, code=200, mime="application/json", headers=None):
 		self.send_response(code)
@@ -56,12 +68,23 @@ class RequestHandler(BaseHTTPRequestHandler):
 		self.wfile.flush()
 	
 	def do_HEAD(self):
+		print str(self.headers)
 		arguments, data, path = self.process_cgi()
 		file_id =  arguments[3]
-		set_property("streaming.file_id", file_id)
-		streaming_url = base64.b64decode(arguments[2])
-		set_property("streaming.url", streaming_url)
-		headers = self.generate_respose_headers()
+		if get_property("streaming.file_id") != file_id:
+			set_property("streaming.file_id", file_id)
+			streaming_url = base64.b64decode(arguments[2])
+			set_property("streaming.url", streaming_url)
+			TM = Transmogrifier(0, get_property("streaming.url"), '', 'stream.avi', get_property("streaming.file_id"), video_type='stream')
+			TM.get_target_info()
+			set_property("streaming.total_bytes", TM.total_bytes)
+			set_property("streaming.total_blocks", TM.total_blocks)
+			total_bytes = TM.total_bytes
+			del TM
+		else:
+			total_bytes = int(get_property("streaming.total_bytes"))
+		self.generate_respose_headers()
+		self._response_headers['Content-Length'] = total_bytes
 		self.send_response(200)
 		for header in self._response_headers.keys():
 			self.send_header(header, self._response_headers[header])
@@ -77,18 +100,15 @@ class RequestHandler(BaseHTTPRequestHandler):
 		self._response_headers['Accept-Ranges'] = 'bytes'
 		self._response_headers['Content-Length'] = 0
 		self._response_headers['Content-Type'] = "video/x-msvideo"
-		TM = Transmogrifier(0, get_property("streaming.url"), '', 'stream.avi', get_property("streaming.file_id"), video_type='stream')
-		TM.get_target_info()
-		self._response_headers['Content-Length'] = TM.total_bytes
-		set_property("streaming.total_bytes", TM.total_bytes)
-		set_property("streaming.total_blocks", TM.total_blocks)
-		del TM
+
 	
 	def do_GET(self):
 		arguments, data, path = self.process_cgi()
 		#print self.headers
 		#print arguments
 		#print data
+		
+		
 		if True: #try:
 			if arguments[1] == 'query':
 				if arguments[2] == 'log':
@@ -130,13 +150,13 @@ class RequestHandler(BaseHTTPRequestHandler):
 				hash_url = arguments[2]
 				file_id = arguments[3]
 				url = base64.b64decode(hash_url)
-				now = datetime.datetime.utcnow()
-				self._response_headers['Date'] = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
-
+				self.generate_respose_headers()
+				self._response_headers['Content-Length'] = get_property("streaming.total_bytes")
 				TM = Transmogrifier(0, get_property("streaming.url"), '', 'stream.avi', get_property("streaming.file_id"), video_type='stream')
-				TM.total_bytes = int(get_property("streaming.total_bytes")
-				TM.total_blocks = int(get_property("streaming.total_blocks")
+				TM.total_bytes = int(get_property("streaming.total_bytes"))
+				TM.total_blocks = int(get_property("streaming.total_blocks"))
 				current_byte = 0
+				print str(self.headers)
 				try:
 					range_reqeust = str(self.headers.getheader("Range"))
 					temp=range_reqeust.split("=")[1].split("-")
@@ -147,37 +167,26 @@ class RequestHandler(BaseHTTPRequestHandler):
 					end_byte = TM.total_bytes - 1
 				content_range = "%s-%s/%s" % (current_byte, end_byte, TM.total_bytes)
 				self._response_headers['Content-Range'] = content_range
-				self.send_response(206)
-				for header in self._response_headers.keys():
-					self.send_header(header, self._response_headers[header])
-				self.end_headers()
-				'''
-				if not get_property("stream_started"):
-					TM.stream(current_byte)
-					set_property("stream_started", "true")
-				else:
-					TM.seek(current_byte)
-				while True:
-					try:
-						block, end_byte, block_number = TM.read_block(start_byte=current_byte)
-						print "%s %s" % (block_number, end_byte)
-						if block is not False:
-							current_byte = end_byte + 1
-							self.wfile.write(block)
-							if end_byte >= file_size:
-								break
-						else:
-							try:
-								self.wfile.flush()
-							except:
-								break
-							time.sleep(.1)
-					except Exception, e:
-						print e
-						break
-				del TM
-				#set_property("stream_started", "false")
-				#self.wfile.close()'''
+				try:
+					self.send_response(206)
+					for header in self._response_headers.keys():
+						self.send_header(header, self._response_headers[header])
+					self.end_headers()
+					if not get_property("stream_started"):
+						TM.stream(current_byte)
+						set_property("stream_started", "true")
+					else:
+						TM.seek(current_byte)
+						set_property("abort_streaming", "now")
+					
+					self.send_video(TM, current_byte, TM.total_bytes)
+					
+					del TM
+					#self.wfile.close()
+				except:
+					# socket is dead. Abort sending
+					set_property("abort_streaming", "now")
+
 		
 			else:
 				if self.path=='/':
@@ -220,6 +229,27 @@ class RequestHandler(BaseHTTPRequestHandler):
 		#	self.wfile.close()
 		#	return False
 		self.wfile.close()
+		
+		
+	
+	def send_video(self, TM, current_byte, total_bytes):
+		while True:
+			if get_property("abort_streaming") == 'now':
+				set_property("abort_streaming", "")
+				break
+			try:
+				block, end_byte, block_number = TM.read_block(start_byte=current_byte)
+				print "read %s %s" % (block_number, end_byte)
+				if block is not False:
+					current_byte = end_byte + 1
+					self.wfile.write(block)
+					if end_byte >= total_bytes:
+						break
+				else:
+					time.sleep(.1)
+			except Exception, e:
+				print e
+				break
 		
 	def do_POST(self):
 		parts = urlparse(self.path)

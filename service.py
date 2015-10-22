@@ -8,8 +8,9 @@ import time
 import hashlib
 import urlresolver
 import json
+import socket
 from threading import Thread
-#from multiprocessing import Pipe
+from SocketServer import ThreadingMixIn
 from dudehere.routines import *
 from dudehere.routines.vfs import VFSClass
 from dudehere.routines.threadpool import ThreadPool, MyPriorityQueue
@@ -19,6 +20,22 @@ from resources.lib.database import *
 from resources.lib.server import RequestHandler
 from resources.lib.transmogrifier import OutputHandler, Transmogrifier
 
+
+class Server(HTTPServer):
+
+	def get_request(self):
+		self.socket.settimeout(5.0)
+		result = None
+		while result is None:
+			try:
+				result = self.socket.accept()
+			except socket.timeout:
+				pass
+		result[0].settimeout(1000)
+		return result
+
+class ThreadedHTTPServer(ThreadingMixIn, Server):
+	"""Handle requests in a separate thread."""
 
 class Service(xbmc.Player):
 	def __init__(self, *args, **kwargs):
@@ -86,7 +103,9 @@ class Service(xbmc.Player):
 		else:
 			address = "0.0.0.0"
 		ADDON.log("Launching WebInterface on: %s:%s" % (address, CONTROL_PORT))
-		server = HTTPServer((address, CONTROL_PORT), RequestHandler)
+		socket.setdefaulttimeout(10)
+		httd = ThreadedHTTPServer
+		server = httd((address, CONTROL_PORT), RequestHandler)
 		webserver = Thread(target=server.serve_forever)
 		webserver.start()
 		#self.listener =  Pipe()
@@ -106,6 +125,7 @@ class Service(xbmc.Player):
 				else:
 					DB.execute("UPDATE queue SET status=3 WHERE id=?", [self.id])
 				DB.commit()
+
 		server.socket.close()
 		ADDON.log("Service stopping...", 1)
 
