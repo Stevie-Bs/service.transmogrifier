@@ -62,8 +62,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 	def connection_dropped(self, error, environ=None):
 		print "kodi disconnected"
 
-	#def log_message(self, format, *args):
-	#	self.log_file.write("%s - - [%s] %s\n" % (self.client_address[0], self.log_date_time_string(), format%args))
+	def log_message(self, format, *args):
+		self.log_file.write("%s - - [%s] %s\n" % (self.client_address[0], self.log_date_time_string(), format%args))
 	
 	def _send_response(self, content, code=200, mime="application/json", headers=None):
 		self.send_response(code)
@@ -165,7 +165,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 				TM.total_bytes = int(get_property("streaming.total_bytes"))
 				TM.total_blocks = int(get_property("streaming.total_blocks"))
 				current_byte = 0
-				print str(self.headers)
+				ADDON.log(str(self.headers), LOG_LEVEL.VERBOSE)
 				try:
 					range_reqeust = str(self.headers.getheader("Range"))
 					temp=range_reqeust.split("=")[1].split("-")

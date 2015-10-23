@@ -23,7 +23,7 @@ from resources.lib.transmogrifier import OutputHandler, Transmogrifier
 
 
 class Server(HTTPServer):
-
+		
 	def get_request(self):
 		self.socket.settimeout(5.0)
 		result = None
@@ -34,6 +34,31 @@ class Server(HTTPServer):
 				pass
 		result[0].settimeout(1000)
 		return result
+	
+	def _handle_request_noblock(self):
+		"""Handle one request, without blocking.
+
+		I assume that select.select has returned that the socket is
+		readable before this function was called, so there should be
+		no risk of blocking in get_request().
+		"""
+		try:
+			request, client_address = self.get_request()
+		except socket.error, e:
+			if isinstance(e.args, tuple):
+				print "errno is %d" % e[0]
+				if e[0] == errno.EPIPE:
+					print "Detected remote disconnect"
+				else:
+					print e
+			else:
+				print "socket error ", e
+		if self.verify_request(request, client_address):
+			try:
+				self.process_request(request, client_address)
+			except:
+				self.handle_error(request, client_address)
+				self.shutdown_request(request)
 
 class ThreadedHTTPServer(ThreadingMixIn, Server):
 	"""Handle requests in a separate thread."""
@@ -113,12 +138,11 @@ class Service(xbmc.Player):
 		socket.setdefaulttimeout(10)
 		server_class = ThreadedHTTPServer
 		httpd = server_class((address, CONTROL_PORT), RequestHandler)
-		#webserver = Thread(target=httpd.serve_forever)
-		#webserver.start()
-		#self.listener =  Pipe()
+		webserver = Thread(target=httpd.serve_forever)
+		webserver.start()
 			
 		while True:
-			if monitor.waitForAbort(.1):
+			if monitor.waitForAbort(1):
 				break
 			filename, url, raw_url, id, file_id, video_type, save_dir = self.poll_queue()
 			if id:
@@ -133,22 +157,6 @@ class Service(xbmc.Player):
 					DB.execute("UPDATE queue SET status=3 WHERE id=?", [self.id])
 				DB.commit()
 				del TM
-			try:
-				httpd.handle_request()
-			except socket.error, e:
-				if isinstance(e.args, tuple):
-					print "errno is %d" % e[0]
-					if e[0] == errno.EPIPE:
-						print "Detected remote disconnect"
-					else:
-						print e
-				else:
-					print "socket error ", e
-				httpd.socket.close()
-				break
-			except IOError, e:
-				print "Got IOError: ", e
-				break
 				
 		httpd.socket.close()
 		ADDON.log("Service stopping...", 1)
