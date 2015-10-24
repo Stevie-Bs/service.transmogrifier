@@ -135,7 +135,7 @@ class Service(xbmc.Player):
 		else:
 			address = "0.0.0.0"
 		ADDON.log("Launching WebInterface on: %s:%s" % (address, CONTROL_PORT))
-		socket.setdefaulttimeout(10)
+		#socket.setdefaulttimeout(10)
 		server_class = ThreadedHTTPServer
 		httpd = server_class((address, CONTROL_PORT), RequestHandler)
 		webserver = Thread(target=httpd.serve_forever)
