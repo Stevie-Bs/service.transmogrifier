@@ -39,6 +39,14 @@ def format_size(bytes):
 	size = "%s %s" % (size, unit)
 	return size
 
+def reset_db():
+	from dudehere.routines.plugin import Plugin
+	plugin = Plugin()
+	c = plugin.confirm("Reset Database", "Are you sure?", "You will have to restart kodi afterwards.")
+	if c:
+		DB_FILE = ADDON.get_setting('database_sqlite_file')
+		ADDON.set_setting("database_sqlite_init", "false")
+		vfs.rm(DB_FILE, quiet=True)
 def view_queue():
 	TM = TransmogrifierAPI()
 	
@@ -196,3 +204,5 @@ def view_queue():
 args = ADDON.parse_query(sys.argv[2])
 if args['mode'] == 		'main':
 	view_queue()
+elif args['mode'] ==	'reset_db':
+	reset_db()

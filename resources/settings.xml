@@ -36,6 +36,7 @@
 	<category label="Database">
 		<setting type="lsep" label="The Transmogrifier Database."/>
 		<setting type="lsep" label="Leave this alone unless you know what you are doing."/>
+		<setting label="Reset SQLite Database" type="action" action="RunScript(service.transmogrifier, mode=reset_db)"/>
 		<setting id="database_sqlite" type="bool" label="Use SQLite Database" default="true" enable="eq(2,false) + !eq(-1,false)"/>
 		<setting id="database_sqlite_file" type="file" label="Database Location" default="special://userdata/addon_data/service.transmogrifier/transmogrifier.db" enable="!eq(-1,false)  + !eq(-2,false)" subsetting="true" />
 		<setting id="database_mysql" type="bool" label="Use MySQL Database" default="false" enable="!eq(-2,false) + !eq(-3,false)"/>		
