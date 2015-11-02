@@ -97,7 +97,8 @@ def view_queue():
 					icon_root = vfs.join(ROOT_PATH, 'resources/www/html/images')
 					for item in self.items:
 						index = self.items.index(item)
-						icon = vfs.join(icon_root, item.lower() + '.png')
+						icon = item.replace(" ", "_").lower()
+						icon = vfs.join(icon_root, icon + '.png')
 
 						self.get_object('dialog').getListItem(index).setIconImage(icon)
 					self.set_object_event('focus', 'dialog')
@@ -105,7 +106,7 @@ def view_queue():
 			context = ContextWindow("Queue")
 			status=int(status)
 			if status == STATUS.PENDING:
-				context.items = ["Remove", "Priority Up", "Priority Down"]
+				context.items = ["Remove", "Change Priority"]
 			elif status == STATUS.ACTIVE:
 				context.items = ["Abort"]
 			elif status == STATUS.COMPLETE:
@@ -166,7 +167,6 @@ def view_queue():
 			action = action.getId()
 			if action in [WINDOW_ACTIONS.ACTION_PREVIOUS_MENU, WINDOW_ACTIONS.ACTION_NAV_BACK]:
 				self.close()
-				pass
 			
 			try:
 				if action in [WINDOW_ACTIONS.ACTION_MOUSE_RIGHT_CLICK, WINDOW_ACTIONS.ACTION_SHOW_INFO, WINDOW_ACTIONS.ACTION_CONTEXT_MENU]:
@@ -186,6 +186,14 @@ def view_queue():
 							id = liz.getProperty("id")
 							TM.delete(id)
 							self.getControl(controlID).removeItem(index)
+						elif event == 'change priority':
+							id = liz.getProperty("id")
+							dialog = xbmcgui.Dialog()
+							priority = dialog.numeric(0, 'Enter a new Priority', "10")
+							TM.change_priority(id, priority)
+							self.current_id = -1
+							queue = TM.get_queue()
+							self.update(queue)
 			except:
 				pass
 			

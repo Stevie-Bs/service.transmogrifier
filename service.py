@@ -125,6 +125,7 @@ class Service(xbmc.Player):
 		ADDON.log("Clearing orphaned jobs...")
 		DB.execute("UPDATE queue SET status=-1 WHERE status=2")
 		DB.commit()
+		
 	def start(self):
 		ADDON.log("Service starting...", 1)
 		monitor = xbmc.Monitor()

@@ -329,6 +329,15 @@ class RequestHandler(BaseHTTPRequestHandler):
 					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'],'count': count})
 				except:
 					self.send_error(500,'Internal Server Error')
+			elif data['method'] == 'change_priority':
+				id = data['videos'][0]['id']
+				priority = data['videos'][0]['priority']
+				DB=MyDatabaseAPI(DB_FILE)
+				SQL = "UPDATE queue SET priority=? WHERE id=?"
+				DB.execute(SQL, [priority, id])
+				DB.commit()
+				DB.disconnect()
+				self.do_Response({'status': 200, 'message': 'success', 'method': data['method'],'id': id})
 			elif data['method'] == 'delete':
 				try:
 					count = len(data['videos'])
