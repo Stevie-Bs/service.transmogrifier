@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<window id="81000">
+	<defaultcontrol>80000</defaultcontrol>
+	<allowoverlay>yes</allowoverlay>
+	<animation effect="fade" time="100">WindowOpen</animation>
+	<animation effect="fade" time="100">WindowClose</animation>
+	<coordinates>
+		<posX>200</posX>
+		<posY>100</posY>
+	</coordinates>
+	<controls>
+		<control type="image">
+			<description>Black Background</description>
+			<posx>74</posx>
+			<posy>58</posy>
+			<width>1140</width>
+			<height>600</height>
+			<texture>ContentPanel.png</texture>
+		</control>
+				<control type="progress" id="80050">
+					<description>Progress</description>
+					<posx>150</posx>
+					<posy>215</posy>
+					<width>970</width>
+					<height>22</height>
+					<visible>true</visible>
+				</control>
+
+		<control type="image">
+			<description>list separator</description>
+			<posx>110</posx>
+			<posy>245</posy>
+			<width>1070</width>
+			<height>8</height>
+			<texture>separator.png</texture>
+		</control>
+		
+		<control type="label">
+			<posx>150</posx>
+			<posy>100</posy>
+			<width>110</width>
+			<height>22</height>
+			<font>font13</font>
+			<align>left</align>
+			<label>Status:</label>
+		</control>
+		
+		<control type="label" id="80010">
+			<posx>250</posx>
+			<posy>100</posy>
+			<width>110</width>
+			<height>22</height>
+			<font>font13</font>
+			<align>left</align>
+			<label></label>
+		</control>
+
+		<control type="label">
+			<posx>150</posx>
+			<posy>135</posy>
+			<width>110</width>
+			<height>22</height>
+			<font>font13</font>
+			<align>left</align>
+			<label>File:</label>
+		</control>
+		
+		<control type="label" id="80011">
+			<posx>250</posx>
+			<posy>135</posy>
+			<width>400</width>
+			<height>22</height>
+			<font>font13</font>
+			<align>left</align>
+			<label></label>
+		</control>
+		
+		<control type="label">
+			<posx>150</posx>
+			<posy>170</posy>
+			<width>110</width>
+			<height>22</height>
+			<font>font13</font>
+			<align>left</align>
+			<label>Addon:</label>
+		</control>
+		
+		<control type="label" id="80012">
+			<posx>250</posx>
+			<posy>170</posy>
+			<width>400</width>
+			<height>22</height>
+			<font>font13</font>
+			<align>left</align>
+			<label></label>
+		</control>
+		
+		<control type="label">
+			<posx>650</posx>
+			<posy>100</posy>
+			<width>110</width>
+			<height>22</height>
+			<font>font13</font>
+			<align>left</align>
+			<label>Host:</label>
+		</control>
+		
+		<control type="label" id="80013">
+			<posx>750</posx>
+			<posy>100</posy>
+			<width>350</width>
+			<height>22</height>
+			<font>font13</font>
+			<align>left</align>
+			<label></label>
+		</control>
+
+		<control type="label">
+			<posx>650</posx>
+			<posy>135</posy>
+			<width>110</width>
+			<height>22</height>
+			<font>font13</font>
+			<align>left</align>
+			<label>Size:</label>
+		</control>
+		
+		<control type="label" id="80014">
+			<posx>750</posx>
+			<posy>135</posy>
+			<width>350</width>
+			<height>22</height>
+			<font>font13</font>
+			<align>left</align>
+			<label></label>
+		</control>
+		
+		<control type="label">
+			<posx>650</posx>
+			<posy>170</posy>
+			<width>110</width>
+			<height>22</height>
+			<font>font13</font>
+			<align>left</align>
+			<label>Progress:</label>
+		</control>
+		
+		<control type="label" id="80015">
+			<posx>750</posx>
+			<posy>170</posy>
+			<width>350</width>
+			<height>22</height>
+			<font>font13</font>
+			<align>left</align>
+			<label></label>
+		</control>
+
+		<control type="panel" id="80000">
+			<posx>150</posx>
+			<posy>150</posy>
+			<width>1000</width>
+			<height>475</height>
+			<onleft></onleft>
+			<onright>80001</onright>
+			<onup></onup>
+			<ondown></ondown>
+			<scrolltime tween="sine" easing="out">200</scrolltime>
+			<autoscroll>false</autoscroll>
+			<viewtype label="536">list</viewtype>
+			<pagecontrol>80001</pagecontrol>
+			<orientation>vertical</orientation>
+			<itemlayout height="40" width="950">
+				<control type="image">
+					<width>950</width>
+					<height>32</height>
+					<posx>0</posx>
+					<posy>115</posy>
+					<texture>List/MenuItemNF.png</texture>
+				</control>
+				<control type="image">
+					<width>25</width>
+					<height>25</height>
+					<posx>0</posx>
+					<posy>115</posy>
+					<info>ListItem.Icon</info>
+				</control>
+				<control type="label">
+					<description>Priority</description>
+					<posx>40</posx>
+					<posy>115</posy>
+					<width>30</width>
+					<height>22</height>
+					<font>font13</font>
+					<align>center</align>
+					<info>ListItem.Top250</info>
+				</control>
+				<control type="label">
+					<description>Addon</description>
+					<posx>95</posx>
+					<posy>115</posy>
+					<width>220</width>
+					<height>22</height>
+					<font>font13</font>
+					<align>left</align>
+					<info>ListItem.Director</info>
+				</control>
+				<control type="label">
+					<description>File Name</description>
+					<posx>350</posx>
+					<posy>115</posy>
+					<width>500</width>
+					<height>22</height>
+					<font>font13</font>
+					<align>left</align>
+					<info>ListItem.OriginalTitle</info>
+				</control>
+				<control type="image">
+					<posx>950</posx>
+					<posy>115</posy>
+					<width>33</width>
+					<height>30</height>
+					<font>font13</font>
+					<align>left</align>
+					<info>ListItem.Label</info>
+				</control>
+			</itemlayout>
+			<focusedlayout height="40" width="950">
+				<control type="image">
+					<width>950</width>
+					<height>32</height>
+					<posx>0</posx>
+					<posy>115</posy>
+					<texture>List/MenuItemFO.png</texture>
+				</control>
+				<control type="image">
+					<width>25</width>
+					<height>25</height>
+					<posx>0</posx>
+					<posy>115</posy>
+					<info>ListItem.Icon</info>
+				</control>
+				<control type="label">
+					<description>Priority</description>
+					<posx>40</posx>
+					<posy>115</posy>
+					<width>30</width>
+					<height>22</height>
+					<font>font13</font>
+					<align>center</align>
+					<info>ListItem.Top250</info>
+				</control>
+				<control type="label">
+					<description>Addon</description>
+					<posx>95</posx>
+					<posy>115</posy>
+					<width>220</width>
+					<height>22</height>
+					<font>font13</font>
+					<align>left</align>
+					<info>ListItem.Director</info>
+				</control>
+				<control type="label">
+					<description>File Name</description>
+					<posx>350</posx>
+					<posy>115</posy>
+					<width>500</width>
+					<height>22</height>
+					<font>font13</font>
+					<align>left</align>
+					<info>ListItem.OriginalTitle</info>
+				</control>
+				<control type="image">
+					<posx>950</posx>
+					<posy>115</posy>
+					<width>33</width>
+					<height>30</height>
+					<font>font13</font>
+					<align>left</align>
+					<info>ListItem.Label</info>
+				</control>
+			</focusedlayout>
+		</control>
+		<control type="scrollbar" id="80001">
+			<description>My first scroll bar control</description>
+			<posx>1170</posx>
+			<posy>250</posy>
+			<width>25</width>
+			<height>385</height>
+			<visible>true</visible>
+			<texturesliderbackground border="0,14,0,14">ScrollBarV.png</texturesliderbackground>
+			<texturesliderbar border="0,14,0,14">ScrollBarV_bar.png</texturesliderbar>
+			<texturesliderbarfocus border="0,14,0,14">ScrollBarV_bar_focus.png</texturesliderbarfocus>
+			<textureslidernib>ScrollBarNib.png</textureslidernib>
+			<textureslidernibfocus>ScrollBarNib.png</textureslidernibfocus>
+			<colordiffuse>FFCCCCCC</colordiffuse>
+			<pulseonselect>True</pulseonselect>
+			<orientation>vertical</orientation>
+			<showonepage>true</showonepage>
+			<onleft>80000</onleft>
+		</control>
+	</controls>
+</window>

@@ -4,7 +4,6 @@ import cgi
 import re
 import hashlib
 import time
-import uuid
 import base64
 import datetime
 import socket
@@ -343,13 +342,16 @@ class RequestHandler(BaseHTTPRequestHandler):
 				except:
 					self.send_error(500,'Internal Server Error')
 			elif data['method'] == 'progress':
+				DB=MyDatabaseAPI(DB_FILE, quiet=True)
+				queue = DB.query("SELECT id, video_type, filename, status, raw_url, fileid, priority, source_addon FROM queue ORDER BY priority DESC, id", force_double_array=True)
+				DB.disconnect()
 				try:
-					file_id = data['fileid']
+					file_id = get_property("caching.file_id")
 					progress = json.loads(get_property(file_id +'.status'))
-					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'progress': progress})
+					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'progress': progress, 'queue': queue})
 				except:
 					progress = {'id': 0, 'total_bytes': 0, 'cached_bytes': 0, 'cached_blocks': 0, 'total_blocks': 0, 'percent': 0, 'speed': 0}
-					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'progress': progress})
+					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'progress': progress, 'queue': queue})
 					#self.send_error(500,'Internal Server Error')		
 			elif data['method'] == 'queue':
 				try:

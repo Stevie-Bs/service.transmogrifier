@@ -220,6 +220,7 @@ class Transmogrifier():
 		if self.__aborting is False:
 			self.Input.__abort = True
 			clear_property('abort_id')
+			clear_property("caching.file_id")
 			clear_property(self.file_id +'.status')
 			ADDON.log("Aborting Transmogrification...", LOG_LEVEL.VERBOSE)
 			ADDON.log("Cleaning Cache...", LOG_LEVEL.VERBOSE)
