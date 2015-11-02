@@ -145,7 +145,7 @@ def view_queue():
 				for item in queue['queue']:
 					status = status_icons[item[3]]
 					liz = xbmcgui.ListItem(status, iconImage=item[1]+".png")
-					liz.setInfo("Video", {FIELDS.PRIORITY: item[6], FIELDS.FILENAME: item[2], FIELDS.ADDON: "plugin.video.theroyalwe"})
+					liz.setInfo("Video", {FIELDS.PRIORITY: item[6], FIELDS.FILENAME: item[2], FIELDS.ADDON: item[7]})
 					liz.setProperty("status", str(item[3]))
 					liz.setProperty("file_id", str(item[5]))
 					liz.setProperty("id", str(item[0]))
