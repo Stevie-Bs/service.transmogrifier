@@ -132,7 +132,7 @@ def view_queue():
 							break
 					self.getControl(80050).setPercent(queue['progress']['percent'])
 					self.getControl(80014).setLabel(format_size(queue['progress']['total_bytes']))
-					status = "[COLOR green]%s[/COLOR] of [COLOR green]%s[/COLOR] at [COLOR orange]%s KB/s[/COLOR]" % (format_size(queue['progress']['cached_bytes']), format_size(queue['progress']['total_bytes']), queue['progress']['speed'])
+					status = "[COLOR green]%s[/COLOR] of [COLOR green]%s[/COLOR] at [COLOR orange]%s KB/s[/COLOR] %s%s" % (format_size(queue['progress']['cached_bytes']), format_size(queue['progress']['total_bytes']), queue['progress']['speed'], queue['progress']['percent'], '%')
 					self.getControl(80015).setLabel(status)
 				else:
 					self.getControl(80050).setPercent(0)
