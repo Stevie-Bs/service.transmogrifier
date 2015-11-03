@@ -48,7 +48,7 @@ else:
 					"raw_url" TEXT, 
 					"url" TEXT, 
 					"save_dir" TEXT,
-					"source_addon", TEXT,
+					"source_addon" TEXT,
 					"status" INTEGER DEFAULT (1)
 					)
 			'''

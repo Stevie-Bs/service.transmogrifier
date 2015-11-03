@@ -176,18 +176,16 @@ def view_queue():
 						liz = self.getControl(controlID).getListItem(index)
 						status = liz.getProperty("status")
 						event = self.show_context(index, status)
+						id = int(liz.getProperty("id"))
+						file_id = liz.getProperty("file_id")
 						if event == 'requeue':
-							id = liz.getProperty("id")
 							TM.restart(id)
 						elif event == 'abort':
-							file_id = liz.getProperty("file_id")
 							TM.abort(file_id)
 						elif event == 'remove':
-							id = liz.getProperty("id")
-							TM.delete(id)
+							TM.delete(int(id))
 							self.getControl(controlID).removeItem(index)
 						elif event == 'change priority':
-							id = liz.getProperty("id")
 							dialog = xbmcgui.Dialog()
 							priority = dialog.numeric(0, 'Enter a new Priority', "10")
 							TM.change_priority(id, priority)
