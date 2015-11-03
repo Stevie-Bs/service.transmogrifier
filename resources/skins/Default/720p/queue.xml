@@ -11,6 +11,26 @@
 	</coordinates>
 	<controls>
 		<control type="image">
+			<description>Title Bar</description>
+			<posx>52</posx>
+			<posy>58</posy>
+			<width>1150</width>
+			<height>35</height>
+			<texture>dialogheader.png</texture>
+		</control>
+		<control type="label">
+			<description>Title Bar</description>
+			<posx>52</posx>
+			<posy>62</posy>
+			<width>1150</width>
+			<height>35</height>
+			<font>font14</font>
+			<align>center</align>
+			<textcolor>0xFFFFA500</textcolor>
+			<shadowcolor>0x333333</shadowcolor>
+			<label>Transmogrifier Queue Manager</label>
+		</control>
+		<control type="image">
 			<description>Black Background</description>
 			<posx>52</posx>
 			<posy>58</posy>

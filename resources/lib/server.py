@@ -116,7 +116,6 @@ class RequestHandler(BaseHTTPRequestHandler):
 		#print arguments
 		#print data
 		
-		
 		if True: #try:
 			if arguments[1] == 'query':
 				if arguments[2] == 'log':
@@ -359,7 +358,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 					progress = json.loads(get_property(file_id +'.status'))
 					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'progress': progress, 'queue': queue})
 				except:
-					progress = {'id': 0, 'total_bytes': 0, 'cached_bytes': 0, 'cached_blocks': 0, 'total_blocks': 0, 'percent': 0, 'speed': 0}
+					progress = {'id': 0, 'total_bytes': 0, 'cached_bytes': 0, 'cached_blocks': 0, 'total_blocks': 0, 'percent': 0, 'speed': 0, 'active_threads': 0}
 					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'progress': progress, 'queue': queue})
 					#self.send_error(500,'Internal Server Error')		
 			elif data['method'] == 'queue':
@@ -372,13 +371,13 @@ class RequestHandler(BaseHTTPRequestHandler):
 					self.send_error(500,'Internal Server Error')
 			elif data['method'] == 'tvshows':
 				try:
-					videos = vfs.ls(TVSHOW_DIRECTORY, pattern="avi$")[1]
+					videos = vfs.ls(TVSHOW_DIRECTORY, pattern="(avi|mp4|mkv|mov|flv)$")[1]
 					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'tvshows': videos})
 				except:
 					self.send_error(500,'Internal Server Error')
 			elif data['method'] == 'movies':
 				try:
-					videos = vfs.ls(MOVIE_DIRECTORY, pattern="avi$")[1]
+					videos = vfs.ls(MOVIE_DIRECTORY, pattern="(avi|mp4|mkv|mov|flv)$")[1]
 					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'movies': videos})
 				except:
 					self.send_error(500,'Internal Server Error')
