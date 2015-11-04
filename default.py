@@ -125,7 +125,7 @@ def view_queue():
 				if queue['progress']['id'] != 0:
 					for test in queue['queue']:
 						if test[0] == queue['progress']['id']:
-							self.getControl(80010).setLabel('Active')
+							self.getControl(80010).setLabel('Active with %s threads' % queue['progress']['active_threads'])
 							self.getControl(80011).setLabel(test[2])
 							self.getControl(80012).setLabel(test[7])
 							current_id = queue['progress']['id']
