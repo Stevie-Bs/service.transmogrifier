@@ -156,14 +156,20 @@ class InputHandler():
 		r = 'bytes=%s-%s' % (start_byte, end_byte)
 		#ADDON.log("Requesting remote bytes: %s" % r, LOG_LEVEL.STANDARD)
 		try:
+			active_threads = int(get_property("active_threads"))
+			set_property("active_threads", str(active_threads + 1))
 			headers = self.__headers
 			headers["Range"] = r
 			req = urllib2.Request(self.__url, headers=headers)
 			f = urllib2.urlopen(req, timeout=2)
-			if f.getcode() != 206: return False
+			if f.getcode() != 206: 
+				set_property("active_threads", str(active_threads - 1))
+				return False
 			block = f.read(self.__block_size)
 			f.close()
+			set_property("active_threads", str(active_threads - 1))
 		except Exception, e:
+			set_property("active_threads", str(active_threads - 1))
 			ADDON.log("HTTP Error: %s" % e, LOG_LEVEL.VERBOSE)
 			return False
 		return block
@@ -175,7 +181,7 @@ class Transmogrifier():
 		self.block_size = BLOCK_SIZE
 		self.total_bytes = 0
 		self.total_blocks = 0
-		self.active_threads = 0
+		set_property("active_threads", "0")
 		self.cached_bytes = 0
 		self.cached_blocks = 0
 		self.total_bytes = False
@@ -246,7 +252,7 @@ class Transmogrifier():
 			self.cached_bytes += len(block)
 			percent, delta, kbs = self.calculate_progress()
 			self.cached_blocks += 1
-			set_property(self.file_id +'.status', json.dumps({'id': self.id, 'total_bytes': self.total_bytes, 'cached_bytes': self.cached_bytes, 'cached_blocks': self.cached_blocks, 'total_blocks': self.total_blocks, 'percent': percent, 'speed': kbs}))
+			set_property(self.file_id +'.status', json.dumps({'id': self.id, 'total_bytes': self.total_bytes, 'cached_bytes': self.cached_bytes, 'cached_blocks': self.cached_blocks, 'total_blocks': self.total_blocks, 'percent': percent, 'speed': kbs, 'active_threads': get_property("active_threads")}))
 			ADDON.log("Progress: %s%s %s/%s %s KBs" % (percent, '%', self.cached_bytes, self.total_bytes, kbs), LOG_LEVEL.STANDARD)
 		return [True, block_number]
 			
@@ -261,8 +267,6 @@ class Transmogrifier():
 			if get_property("streaming.seek_block") and block_number < int(get_property("streaming.seek_block")): return
 			ADDON.log("Requeue %s" % block_number, LOG_LEVEL.STANDARD)
 			self.Pool.queueTask(self.transmogrify, block_number, block_number, self.transmogrified)
-		self.active_threads -= 1
-		#set_property("active_threads", self.active_threads)
 
 	def calculate_progress(self):
 		try:
