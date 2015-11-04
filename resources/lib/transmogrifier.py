@@ -10,7 +10,13 @@ from dudehere.routines import *
 from dudehere.routines.threadpool import ThreadPool, MyPriorityQueue
 from resources.lib.common import *
 
+def change_thread_count(delta):
+	active_threads = int(get_property("active_threads")) + delta
+	set_property("active_threads", str( active_threads ))
 
+def set_thread_count(threads):
+	set_property("active_threads", str( threads ))
+	
 class OutputHandler():
 	def __init__(self, video_type, filename, file_id, total_blocks, completed_blocks = [], extension='avi', save_dir=False):
 		self.__abort = False
@@ -156,20 +162,16 @@ class InputHandler():
 		r = 'bytes=%s-%s' % (start_byte, end_byte)
 		#ADDON.log("Requesting remote bytes: %s" % r, LOG_LEVEL.STANDARD)
 		try:
-			active_threads = int(get_property("active_threads"))
-			set_property("active_threads", str(active_threads + 1))
 			headers = self.__headers
 			headers["Range"] = r
 			req = urllib2.Request(self.__url, headers=headers)
 			f = urllib2.urlopen(req, timeout=2)
-			if f.getcode() != 206: 
-				set_property("active_threads", str(active_threads - 1))
-				return False
+			if f.getcode() != 206: return False
+			change_thread_count(1)
 			block = f.read(self.__block_size)
 			f.close()
-			set_property("active_threads", str(active_threads - 1))
+			change_thread_count(-1)
 		except Exception, e:
-			set_property("active_threads", str(active_threads - 1))
 			ADDON.log("HTTP Error: %s" % e, LOG_LEVEL.VERBOSE)
 			return False
 		return block
@@ -181,7 +183,6 @@ class Transmogrifier():
 		self.block_size = BLOCK_SIZE
 		self.total_bytes = 0
 		self.total_blocks = 0
-		set_property("active_threads", "0")
 		self.cached_bytes = 0
 		self.cached_blocks = 0
 		self.total_bytes = False
@@ -196,6 +197,7 @@ class Transmogrifier():
 		self.completed = []
 		self.__aborting = False
 		self.set_headers(url)
+		set_thread_count(0)
 	
 	def set_headers(self, url):
 		self.__headers = {
