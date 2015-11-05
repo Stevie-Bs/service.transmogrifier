@@ -361,8 +361,10 @@ class Transmogrifier():
 			req = urllib2.Request(self.url, headers=self.__headers)
 			self.net = urllib2.urlopen(req, timeout=3)
 			self.headers = self.net.headers.items()
-			self.total_bytes = int(self.net.headers["Content-Length"])
-			self.total_blocks = int(math.ceil(self.total_bytes / self.block_size))
+			try:
+				self.total_bytes = int(self.net.headers["Content-Length"])
+				self.total_blocks = int(math.ceil(self.total_bytes / self.block_size))
+			except: return False
 			ADDON.log("Total blocks: %s" % self.total_blocks, LOG_LEVEL.VERBOSE)
 			self.extension = False
 			try:
