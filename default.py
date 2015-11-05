@@ -125,7 +125,7 @@ def view_queue():
 				if queue['progress']['id'] != 0:
 					for test in queue['queue']:
 						if test[0] == queue['progress']['id']:
-							self.getControl(80010).setLabel('Active with %s threads' % queue['progress']['active_threads'])
+							self.getControl(80010).setLabel('Active')
 							self.getControl(80011).setLabel(test[2])
 							self.getControl(80012).setLabel(test[7])
 							current_id = queue['progress']['id']
@@ -169,7 +169,7 @@ def view_queue():
 				self.close()
 			
 			try:
-				if action in [WINDOW_ACTIONS.ACTION_MOUSE_RIGHT_CLICK, WINDOW_ACTIONS.ACTION_SHOW_INFO, WINDOW_ACTIONS.ACTION_CONTEXT_MENU]:
+				if action in [WINDOW_ACTIONS.ACTION_SHOW_INFO, WINDOW_ACTIONS.ACTION_CONTEXT_MENU]:
 					controlID = self.getFocus().getId()
 					if controlID == 80000:
 						index = self.getControl(controlID).getSelectedPosition()
