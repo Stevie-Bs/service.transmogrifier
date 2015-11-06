@@ -69,7 +69,7 @@
 		<control type="label" id="80010">
 			<posx>210</posx>
 			<posy>100</posy>
-			<width>250</width>
+			<width>400</width>
 			<height>22</height>
 			<font>font13</font>
 			<align>left</align>
