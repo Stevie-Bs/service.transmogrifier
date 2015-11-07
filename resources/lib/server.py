@@ -309,7 +309,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 						episode = video['episode'] if 'episode' in video.keys() else ''
 						addon = video['addon'] if 'addon' in video.keys() else ''
 						inserts.append((video['type'], video['filename'], save_dir, imdb_id, title, season, episode, raw_url, url, file_id, addon))
-					DB=MyDatabaseAPI(DB_FILE)
+					#DB=MyDatabaseAPI(DB_FILE)
+					DB.connect()
 					DB.execute_many(SQL, inserts)
 					DB.commit()
 					DB.disconnect()
@@ -319,7 +320,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 			elif data['method'] == 'restart':
 				try:
 					count = len(data['videos'])
-					DB=MyDatabaseAPI(DB_FILE)
+					#DB=MyDatabaseAPI(DB_FILE)
+					DB.connect()
 					SQL = "UPDATE queue SET status=1 WHERE id=?"
 					for video in data['videos']:
 						DB.execute(SQL, [video['id']])
@@ -331,7 +333,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 			elif data['method'] == 'change_priority':
 				id = data['videos'][0]['id']
 				priority = data['videos'][0]['priority']
-				DB=MyDatabaseAPI(DB_FILE)
+				#DB=MyDatabaseAPI(DB_FILE)
+				DB.connect()
 				SQL = "UPDATE queue SET priority=? WHERE id=?"
 				DB.execute(SQL, [priority, id])
 				DB.commit()
@@ -340,7 +343,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 			elif data['method'] == 'delete':
 				try:
 					count = len(data['videos'])
-					DB=MyDatabaseAPI(DB_FILE)
+					#DB=MyDatabaseAPI(DB_FILE)
+					DB.connect()
 					SQL = "DELETE FROM queue WHERE id=?"
 					for video in data['videos']:
 						DB.execute(SQL, [video['id']])
@@ -350,7 +354,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 				except:
 					self.send_error(500,'Internal Server Error')
 			elif data['method'] == 'progress':
-				DB=MyDatabaseAPI(DB_FILE, quiet=True)
+				#DB=MyDatabaseAPI(DB_FILE, quiet=True)
+				DB.connect()
 				queue = DB.query("SELECT id, video_type, filename, status, raw_url, fileid, priority, source_addon FROM queue ORDER BY priority DESC, id", force_double_array=True)
 				DB.disconnect()
 				try:
@@ -363,7 +368,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 					#self.send_error(500,'Internal Server Error')		
 			elif data['method'] == 'queue':
 				try:
-					DB=MyDatabaseAPI(DB_FILE)
+					DB.connect()
+					#DB=MyDatabaseAPI(DB_FILE)
 					rows = DB.query("SELECT id, video_type, filename, status, raw_url, fileid, priority, source_addon FROM queue ORDER BY priority DESC, id", force_double_array=True)
 					DB.disconnect()
 					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'queue': rows})
@@ -391,7 +397,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 					self.send_error(500,'Internal Server Error')
 			elif data['method'] == 'abort':
 				try:
-					DB=MyDatabaseAPI(DB_FILE)
+					DB.connect()
+					#DB=MyDatabaseAPI(DB_FILE)
 					if 'file_id' in data:
 						file_id = data['file_id']
 					else:

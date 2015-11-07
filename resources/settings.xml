@@ -37,14 +37,15 @@
 		<setting type="lsep" label="The Transmogrifier Database."/>
 		<setting type="lsep" label="Leave this alone unless you know what you are doing."/>
 		<setting label="Reset SQLite Database" type="action" action="RunScript(service.transmogrifier, mode=reset_db)"/>
-		<setting id="database_sqlite" type="bool" label="Use SQLite Database" default="true" enable="eq(2,false) + !eq(-1,false)"/>
-		<setting id="database_sqlite_file" type="file" label="Database Location" default="special://userdata/addon_data/service.transmogrifier/transmogrifier.db" enable="!eq(-1,false)  + !eq(-2,false)" subsetting="true" />
-		<setting id="database_mysql" type="bool" label="Use MySQL Database" default="false" enable="!eq(-2,false) + !eq(-3,false)"/>		
-		<setting id="database_mysql_host" type="text" label="Server Address" default="" enable="!eq(-3,false) + !eq(-4,false)" subsetting="true" />
-		<setting id="database_mysql_name" type="text" label="Database Name" default="transmogrifier" enable="!eq(-4,false) + !eq(-5,false)" subsetting="true" />
-		<setting id="database_mysql_user" type="text" label="Username" default="" enable="!eq(-5,false) + !eq(-6,false)" subsetting="true" />
-		<setting id="database_mysql_pass" type="text" label="Password" option="hidden" default="" enable="!eq(-6,false) + !eq(-7,false)" subsetting="true" />
-		<setting id="database_mysql_port" type="number" label="Port" default="3306" enable="!eq(-7,false) + !eq(-8,false)" subsetting="true" />
+		<setting id="database_type" type="enum" label="Database Type" values="SQLite|MySQL" default="0" enabled="!eq(-1,false)"/>
+		<setting type="lsep" label="SQLite"/>
+		<setting id="database_sqlite_file" type="file" label="Database File" default="special://userdata/addon_data/service.transmogrifier/transmogrifier.db" enable="eq(-2,0)" subsetting="true" />
+		<setting type="lsep" label="MySQL"/>
+		<setting id="database_mysql_host" type="text" label="Host" default="" enable="eq(-4,1)" subsetting="true" />
+		<setting id="database_mysql_name" type="text" label="Schema" default="theroyalwe" enable="eq(-5,1)" subsetting="true" />
+		<setting id="database_mysql_user" type="text" label="Username" default="" enable="eq(-6,1)" subsetting="true" />
+		<setting id="database_mysql_pass" type="text" label="Password" option="hidden" default="" enable="eq(-7,1)" subsetting="true" />
+		<setting id="database_mysql_port" type="number" label="Port" default="3306" enable="eq(-8,1)" subsetting="true" />
 		<setting id="database_sqlite_init" type="text" default="false" visible="false" />
 		<setting id="database_mysql_init" type="text" default="false" visible="false" />
 	</category>
