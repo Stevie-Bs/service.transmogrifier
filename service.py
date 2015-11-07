@@ -13,11 +13,12 @@ import errno
 from threading import Thread
 from SocketServer import ThreadingMixIn
 from dudehere.routines import *
+from resources.lib.database import *
 from dudehere.routines.vfs import VFSClass
 from dudehere.routines.threadpool import ThreadPool, MyPriorityQueue
 from BaseHTTPServer import HTTPServer
 from resources.lib.common import *
-from resources.lib.database import *
+
 from resources.lib.server import RequestHandler
 from resources.lib.transmogrifier import OutputHandler, Transmogrifier
 
@@ -92,9 +93,9 @@ class Service(xbmc.Player):
 
 	def poll_queue(self):
 		DB.connect()
-		if ADDON.get_setting('enable_transmogrifier')=='false': return False, False, False, False, False
+		if ADDON.get_setting('enable_transmogrifier')=='false': return False, False, False, False, False, False, False
 		SQL = "SELECT filename, url, id, video_type, raw_url, save_dir FROM queue WHERE status=1 ORDER BY priority DESC, id LIMIT 1"
-		row = DB.query(SQL)
+		row = self.DB.query(SQL)
 		if row:
 			name = row[0]
 			url = row[1]
@@ -106,11 +107,10 @@ class Service(xbmc.Player):
 			if raw_url and not url:
 				source = urlresolver.HostedMediaFile(url=raw_url)
 				url = source.resolve() if source else None
-			DB.execute("UPDATE queue SET status=2, fileid=? WHERE id=?", [file_id, id])
-			DB.commit()
+			self.DB.execute("UPDATE queue SET status=2, fileid=? WHERE id=?", [file_id, id])
+			self.DB.commit()
 			message = "Queued: %s" % name
 			ADDON.raise_notify(ADDON_NAME, message)
-			DB.disconnect()
 			return name, url, raw_url, id, file_id, video_type, save_dir
 		else:
 			return False, False, False, False, False, False, False
@@ -124,11 +124,15 @@ class Service(xbmc.Player):
 				path = vfs.join(WORK_DIRECTORY, foo)
 				vfs.rm(path, quiet=True)
 		ADDON.log("Clearing orphaned jobs...")
-		DB.connect()
-		DB.execute("UPDATE queue SET status=-1 WHERE status=2")
-		DB.commit()
+		self.DB.connect()
+		self.DB.execute("UPDATE queue SET status=-1 WHERE status=2")
+		self.DB.commit()
 		
 	def start(self):
+		if DB_TYPE == 'sqlite':
+			self.DB = MyDatabaseAPI(DB_FILE, connect=False, quiet=True, check_version=False)
+		else:
+			self.DB = DB
 		ADDON.log("Service starting...", 1)
 		monitor = xbmc.Monitor()
 		self.clear_cache()
@@ -143,10 +147,11 @@ class Service(xbmc.Player):
 		httpd = server_class((address, CONTROL_PORT), RequestHandler)
 		webserver = Thread(target=httpd.serve_forever)
 		webserver.start()
-			
+		self.DB.connect()	
 		while True:
 			if monitor.waitForAbort(1):
 				break
+			
 			filename, url, raw_url, id, file_id, video_type, save_dir = self.poll_queue()
 			if id:
 				ADDON.log("Starting to Transmogrify: %s" % filename,1)
@@ -155,18 +160,20 @@ class Service(xbmc.Player):
 				set_property("caching.file_id", file_id)
 				TM = Transmogrifier(id, url, raw_url, filename, file_id, video_type=video_type, save_dir=save_dir)
 				TM.start()
-				DB.connect()
-				if get_property("abort_all")=="true":
-					DB.execute("UPDATE queue SET status=-1 WHERE id=?", [self.id])
-				else:
-					DB.execute("UPDATE queue SET status=3 WHERE id=?", [self.id])
-				DB.commit()
-				DB.disconnect()
-				del TM
 				
+				if get_property("abort_all")=="true":
+					self.DB.execute("UPDATE queue SET status=-1 WHERE id=?", [self.id])
+				else:
+					set_property("caching.complete", file_id)
+					self.DB.execute("UPDATE queue SET status=3 WHERE id=?", [self.id])
+				self.DB.commit()
+				
+				del TM
+		
 		httpd.socket.close()
 		ADDON.log("Service stopping...", 1)
 		
 if __name__ == '__main__':
 	TS = Service()
 	TS.start()
+	TS.DB.disconnect()

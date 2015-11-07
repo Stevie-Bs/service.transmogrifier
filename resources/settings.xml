@@ -25,6 +25,7 @@
 		<setting id="auth_token" type="text" default="" visible="false"/>
 	</category>
 		<category label="Transmogrigier Client">
+		<setting id="notification" type="labelenum" label="Notification Sound" Default="None" values="None|Bell|Disobedient|Door|Inquisitiveness|Job Done|Knob|Rocket Ammo|Samus Die|System Fault" />
 		<setting type="lsep" label="The Transmogrifier management client can connect to a remote server."/>
 		<setting type="lsep" label="Leave this alone unless you know what you are doing."/>
 		<setting id="connect_remote" type="bool" label="Connect to Remote Transmogrifier" default="false"/>
