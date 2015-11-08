@@ -166,8 +166,13 @@ class Service(xbmc.Player):
 				else:
 					set_property("caching.complete", file_id)
 					self.DB.execute("UPDATE queue SET status=3 WHERE id=?", [self.id])
+					try:
+						if NOTIFICATION:
+							from subprocess import call
+							wav = vfs.join(ROOT_PATH, 'resources/notifications/'+NOTIFICATION+'.wav')
+							call(["aplay", wav])
+					except: pass
 				self.DB.commit()
-				
 				del TM
 		
 		httpd.socket.close()

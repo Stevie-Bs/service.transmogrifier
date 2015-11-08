@@ -27,6 +27,12 @@ WEB_ROOT = vfs.join(ROOT_PATH, 'resources/www/html')
 CONTROL_PORT = int(ADDON.get_setting('control_port'))
 VALID_TOKENS = []
 
+NOTIFICATION = ADDON.get_setting('notification')
+if NOTIFICATION == 'None':
+	NOTIFICATION = False
+else:
+	NOTIFICATION = NOTIFICATION.replace(" ", "_").lower()
+
 ADDON.log("Work Directory: %s" % WORK_DIRECTORY)
 ADDON.log("Cache Directory: %s" % CACHE_DIRECTORY)
 if not vfs.exists(DATA_PATH): vfs.mkdir(DATA_PATH)
