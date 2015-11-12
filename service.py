@@ -1,6 +1,5 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-
 import xbmc
 import urllib2
 import uuid
@@ -92,7 +91,7 @@ class Service(xbmc.Player):
 		
 
 	def poll_queue(self):
-		DB.connect()
+		self.DB.connect()
 		if ADDON.get_setting('enable_transmogrifier')=='false': return False, False, False, False, False, False, False
 		SQL = "SELECT filename, url, id, video_type, raw_url, save_dir FROM queue WHERE status=1 ORDER BY priority DESC, id LIMIT 1"
 		row = self.DB.query(SQL)
@@ -168,9 +167,10 @@ class Service(xbmc.Player):
 					self.DB.execute("UPDATE queue SET status=3 WHERE id=?", [self.id])
 					try:
 						if NOTIFICATION:
-							from subprocess import call
-							wav = vfs.join(ROOT_PATH, 'resources/notifications/'+NOTIFICATION+'.wav')
-							call(["aplay", wav])
+							if PLATFORM.startswith('linux'):
+								from subprocess import call
+								wav = vfs.join(ROOT_PATH, 'resources/notifications/'+NOTIFICATION+'.wav')
+								call(["aplay", wav])
 					except: pass
 				self.DB.commit()
 				del TM

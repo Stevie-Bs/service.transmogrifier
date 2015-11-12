@@ -160,8 +160,12 @@ class RequestHandler(BaseHTTPRequestHandler):
 				self.generate_respose_headers()
 				self._response_headers['Content-Length'] = get_property("streaming.total_bytes")
 				TM = Transmogrifier(0, get_property("streaming.url"), '', 'stream.avi', get_property("streaming.file_id"), video_type='stream')
-				TM.total_bytes = int(get_property("streaming.total_bytes"))
-				TM.total_blocks = int(get_property("streaming.total_blocks"))
+				try:
+					TM.total_bytes = int(get_property("streaming.total_bytes"))
+					TM.total_blocks = int(get_property("streaming.total_blocks"))
+				except:
+					self.send_error(500,'Internal Server Error')
+				
 				current_byte = 0
 				ADDON.log(str(self.headers), LOG_LEVEL.VERBOSE)
 				try:
@@ -246,7 +250,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 					time.sleep(.1)
 				else:
 					if block is not False:
-						ADDON.log("Proxy %s %s (block, bytes)" % (block_number, end_byte), LOG_LEVEL.VERBOSE) 
+						ADDON.log("Proxy %s %s/%s (block, bytes)" % (block_number, end_byte, total_bytes), LOG_LEVEL.VERBOSE) 
 						current_byte = end_byte + 1
 						self.wfile.write(block)
 						if end_byte >= total_bytes:
@@ -283,11 +287,11 @@ class RequestHandler(BaseHTTPRequestHandler):
 				if data['token'] in VALID_TOKENS: self.do_Response({'status': 200, 'message': 'success', 'method': data['method']})
 				else: self.do_Response({'status': 401, 'message': 'Unauthorized', 'method': data['method']})
 				return
-			'''
+
 			if data['token'] not in VALID_TOKENS:
 				self.send_error(401,'Unauthorized')
 				return
-			'''
+
 			
 			if data['method'] == 'enqueue':
 				#try:

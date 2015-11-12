@@ -12,11 +12,6 @@ from dudehere.routines.constants import WINDOW_ACTIONS
 from dudehere.routines.transmogrifier import TransmogrifierAPI
 from dudehere.routines.vfs import VFSClass
 vfs = VFSClass()
-NOTIFICATION = ADDON.get_setting('notification')
-if NOTIFICATION == 'None':
-	NOTIFICATION = False
-else:
-	NOTIFICATION = NOTIFICATION.replace(" ", "_").lower()
 	
 WINDOW_PREFIX = 'transmogrifier'
 CONTEX_ACTION = None
@@ -66,13 +61,6 @@ def view_queue():
 			while True:
 				if self.abort_polling: break
 				results = TM.get_progress()
-				
-				if results['progress']['complete'] != '' and NOTIFICATION:
-					try:
-						from subprocess import call
-						wav = vfs.join(ROOT_PATH, 'resources/notifications/'+NOTIFICATION+'.wav')
-						call(["aplay", wav])
-					except: pass
 				self.update(results)
 				xbmc.sleep(1000)
 			
