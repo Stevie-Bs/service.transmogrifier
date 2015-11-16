@@ -61,6 +61,7 @@ def view_queue():
 			while True:
 				if self.abort_polling: break
 				results = TM.get_progress()
+				print results
 				self.update(results)
 				xbmc.sleep(1000)
 			
