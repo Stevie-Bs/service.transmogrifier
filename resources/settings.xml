@@ -32,6 +32,7 @@
 		<setting id="remote_host" type="text" label="Remote Hostname" default="" enable="!eq(-1,false)" subsetting="true" />
 		<setting id="remote_control_port" label="Port" type="slider" default="8750" range="8000,1,8999" option="int" enable="!eq(-2,false)" subsetting="true" />
 		<setting id="remote_auth_pin" type="text" label="Pin" default="4321" subsetting="true" enable="!eq(-3,false)"/>
+		<setting id="saved_host" type="action" label="Saved Host" default="" enable="!eq(-4,false)" subsetting="true" action="RunScript(service.transmogrifier, mode=select_host)"/>
 		<setting id="remote_auth_token" type="text" default="" visible="false"/>
 	</category>
 	<category label="Database">
