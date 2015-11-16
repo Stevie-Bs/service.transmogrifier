@@ -47,6 +47,25 @@ def reset_db():
 		DB_FILE = ADDON.get_setting('database_sqlite_file')
 		ADDON.set_setting("database_sqlite_init", "false")
 		vfs.rm(DB_FILE, quiet=True)
+		
+def select_host():
+	from dudehere.routines.plugin import Plugin
+	plugin = Plugin()
+	hosts_file = vfs.join(DATA_PATH, "hosts.json")
+	if vfs.exists(hosts_file):
+		history = vfs.read_file(hosts_file, json=True)
+		hosts = ["http://%s:%s" % (h['host'], h['port']) for h in history]
+		host = plugin.dialog_select('Select a Host', hosts)
+		if host is not False:
+			host = history[host]
+			ADDON.set_setting('remote_host', host['host'])
+			ADDON.set_setting('remote_control_port', host['port'])
+			ADDON.set_setting('remote_auth_pin', host['pin'])
+	else:
+		plugin.notify("Error", "Host history is empty")
+	
+	
+	
 def view_queue():
 	TM = TransmogrifierAPI()
 	
@@ -69,6 +88,19 @@ def view_queue():
 			connection = "[B][COLOR blue]http://%s:%s[/COLOR][/B]"
 			if ADDON.get_setting('connect_remote') == 'true':
 				connection = connection % (ADDON.get_setting('remote_host'), ADDON.get_setting('remote_control_port'))
+				hosts_file = vfs.join(DATA_PATH, "hosts.json")
+				if vfs.exists(hosts_file):
+					history = vfs.read_file(hosts_file, json=True)
+				else:
+					history = []
+				old_host = False
+				for h in history: 
+					old_host = (h['host'] == ADDON.get_setting('remote_host') and h['port'] == ADDON.get_setting('remote_control_port'))
+					if old_host: break
+				if not old_host:
+					history.append({"host": ADDON.get_setting('remote_host'), "port": ADDON.get_setting('remote_control_port'), "pin": ADDON.get_setting('remote_auth_pin')})	
+				vfs.write_file(hosts_file, history, mode='w', json=True)
+				print history
 			else:
 				connection = connection % ('localhost', ADDON.get_setting('control_port'))
 			self.getControl(80013).setLabel(connection)
@@ -213,3 +245,5 @@ if args['mode'] == 		'main':
 	view_queue()
 elif args['mode'] ==	'reset_db':
 	reset_db()
+elif args['mode'] ==	'select_host':
+	select_host()	
