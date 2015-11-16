@@ -77,7 +77,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 		self.wfile.flush()
 	
 	def do_HEAD(self):
-		print str(self.headers)
+		ADDON.log(str(self.headers), LOG_LEVEL.VERBOSE)
 		arguments, data, path = self.process_cgi()
 		file_id =  arguments[3]
 		if get_property("streaming.file_id") != file_id:
@@ -97,6 +97,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 		for header in self._response_headers.keys():
 			self.send_header(header, self._response_headers[header])
 		self.end_headers()
+		ADDON.log(str(self._response_headers), LOG_LEVEL.VERBOSE)
 	
 	def generate_respose_headers(self):
 		self._response_headers = {}
@@ -107,15 +108,11 @@ class RequestHandler(BaseHTTPRequestHandler):
 		self._response_headers['ETag'] = get_property("streaming.file_id")
 		self._response_headers['Accept-Ranges'] = 'bytes'
 		self._response_headers['Content-Length'] = 0
-		self._response_headers['Content-Type'] = "video/x-msvideo"
+		self._response_headers['Content-Type'] = "application/octet-stream"
 
 	
 	def do_GET(self):
 		arguments, data, path = self.process_cgi()
-		#print self.headers
-		#print arguments
-		#print data
-		
 		if True: #try:
 			if arguments[1] == 'query':
 				if arguments[2] == 'log':
@@ -154,6 +151,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 				else:
 					self.send_error(400,'Bad Request')
 			elif arguments[1] == 'stream':
+				ADDON.log(str(self.headers), LOG_LEVEL.VERBOSE)
 				hash_url = arguments[2]
 				file_id = arguments[3]
 				url = base64.b64decode(hash_url)
@@ -167,7 +165,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 					self.send_error(500,'Internal Server Error')
 				
 				current_byte = 0
-				ADDON.log(str(self.headers), LOG_LEVEL.VERBOSE)
+				
 				try:
 					range_reqeust = str(self.headers.getheader("Range"))
 					temp=range_reqeust.split("=")[1].split("-")
@@ -182,6 +180,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 				for header in self._response_headers.keys():
 					self.send_header(header, self._response_headers[header])
 				self.end_headers()
+				ADDON.log(str(self._response_headers), LOG_LEVEL.VERBOSE)
 				if not get_property("streaming.started"):
 					set_property("streaming.started", "true")
 					ADDON.log("Start streaming at %s bytes" % current_byte, LOG_LEVEL.VERBOSE) 

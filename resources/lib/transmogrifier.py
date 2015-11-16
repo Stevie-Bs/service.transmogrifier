@@ -324,11 +324,9 @@ class Transmogrifier():
 		ADDON.log("Seek to block %s " % first_block, LOG_LEVEL.VERBOSE)
 		set_property("streaming.seek_block", str(first_block))
 		self.Pool.emptyQueue()
-		#self.Pool.__tasks = Queue.Queue()
 		self.Input = InputHandler(self.url, self.raw_url, self.file_id, self.total_blocks, self.total_bytes, self.__headers)
 		self.Input.__streaming = True
 		for block_number in range(first_block, self.total_blocks+1):
-			#if self.Input.is_cached(block_number) is False:
 			self.Pool.queueTask(self.transmogrify, block_number, block_number, self.transmogrified)
 		
 	def read_block(self, start_byte=0):
