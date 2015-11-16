@@ -259,6 +259,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 						time.sleep(.1)
 			except Exception, e:
 				print e
+				TM.abort_all()
 				break
 		
 	def do_POST(self):
