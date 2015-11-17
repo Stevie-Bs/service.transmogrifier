@@ -248,6 +248,10 @@ class Transmogrifier():
 
 		if self.video_type == 'stream':
 			self.Input.save_block(block_number, block)
+			self.cached_bytes += len(block)
+			percent, delta, kbs = self.calculate_progress()
+			set_property(self.file_id +'.status', json.dumps({'id': self.id, 'total_bytes': self.total_bytes, 'cached_bytes': self.cached_bytes, 'speed': kbs}))
+			ADDON.log("Stream Progress: %s/%s %s KBs" % (self.cached_bytes, self.total_bytes, kbs), LOG_LEVEL.STANDARD)
 		else:
 			offset_byte = block_number * self.block_size
 			self.Output.queue_block(block, offset_byte, block_number)
@@ -255,7 +259,7 @@ class Transmogrifier():
 			percent, delta, kbs = self.calculate_progress()
 			self.cached_blocks += 1
 			set_property(self.file_id +'.status', json.dumps({'id': self.id, 'total_bytes': self.total_bytes, 'cached_bytes': self.cached_bytes, 'cached_blocks': self.cached_blocks, 'total_blocks': self.total_blocks, 'percent': percent, 'speed': kbs, 'active_threads': get_property("active_threads")}))
-			ADDON.log("Progress: %s%s %s/%s %s KBs" % (percent, '%', self.cached_bytes, self.total_bytes, kbs), LOG_LEVEL.STANDARD)
+			ADDON.log("Cache Progress: %s%s %s/%s %s KBs" % (percent, '%', self.cached_bytes, self.total_bytes, kbs), LOG_LEVEL.STANDARD)
 		return [True, block_number]
 			
 			
@@ -294,6 +298,7 @@ class Transmogrifier():
 			self.processor = Thread(target=self.Output.process_queue)
 			self.processor.start()
 			self.started = time.time()
+			self.cached_bytes = 0
 			for block_number in range(0, self.total_blocks+1):
 				self.Pool.queueTask(self.transmogrify, block_number, block_number, self.transmogrified)
 
@@ -314,6 +319,7 @@ class Transmogrifier():
 		self.Input = InputHandler(self.url, self.raw_url, self.file_id, self.total_blocks, self.total_bytes, self.__headers)
 		self.Input.__streaming = True
 		self.started = time.time()
+		self.cached_bytes = 0
 		for block_number in range(first_block, self.total_blocks+1):
 			self.Pool.queueTask(self.transmogrify, block_number, block_number, self.transmogrified)
 		return True
@@ -326,6 +332,7 @@ class Transmogrifier():
 		self.Pool.emptyQueue()
 		self.Input = InputHandler(self.url, self.raw_url, self.file_id, self.total_blocks, self.total_bytes, self.__headers)
 		self.Input.__streaming = True
+		self.started = time.time()
 		for block_number in range(first_block, self.total_blocks+1):
 			self.Pool.queueTask(self.transmogrify, block_number, block_number, self.transmogrified)
 		
