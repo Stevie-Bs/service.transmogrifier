@@ -25,9 +25,10 @@
 		<setting id="auth_token" type="text" default="" visible="false"/>
 	</category>
 		<category label="Transmogrigier Client">
-		<setting id="notification" type="labelenum" label="Notification Sound (Linux Only)" Default="None" values="None|Bell|Disobedient|Door|Inquisitiveness|Job Done|Knob|Rocket Ammo|Samus Die|System Fault" />
+		<setting id="notification" type="labelenum" label="Notification Sound (Linux,OSX Only)" Default="None" values="None|Bell|Disobedient|Door|Inquisitiveness|Job Done|Knob|Rocket Ammo|Samus Die|System Fault" />
 		<setting type="lsep" label="The Transmogrifier management client can connect to a remote server."/>
 		<setting type="lsep" label="Leave this alone unless you know what you are doing."/>
+		<setting id="blacklist_hosts" type="text" label="Blacklisted Hosts (comma separated list)" default=""/>
 		<setting id="connect_remote" type="bool" label="Connect to Remote Transmogrifier" default="false"/>
 		<setting id="remote_host" type="text" label="Remote Hostname" default="" enable="!eq(-1,false)" subsetting="true" />
 		<setting id="remote_control_port" label="Port" type="slider" default="8750" range="8000,1,8999" option="int" enable="!eq(-2,false)" subsetting="true" />

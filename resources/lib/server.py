@@ -32,7 +32,7 @@ def get_property(k):
 	return p
 
 class RequestHandler(BaseHTTPRequestHandler):
-
+	blacklist = ['transmogrified', 'transmogrifier', 'local']
 	log_file = vfs.open(LOG_FILE, 'w')
 	def process_cgi(self):
 		parts = urlparse(self.path)
@@ -263,17 +263,12 @@ class RequestHandler(BaseHTTPRequestHandler):
 		
 	def do_POST(self):
 		parts = urlparse(self.path)
-		#try:
 		path = parts.path
 		if path == '/api.json':
 			query = parts.query
 			params = cgi.parse_qs(query, keep_blank_values=True)
 			self.data_string = self.rfile.read(int(self.headers['Content-Length']))
 			data = json.loads(self.data_string)
-			#print self.headers
-			#print params
-			#print data
-			#print VALID_TOKENS
 			if data['method'] == 'authorize':
 				if str(data['pin']) == ADDON.get_setting('auth_pin'):
 					token = hashlib.sha1(str(time.time())).hexdigest()
@@ -292,39 +287,55 @@ class RequestHandler(BaseHTTPRequestHandler):
 				self.send_error(401,'Unauthorized')
 				return
 
-			
-			if data['method'] == 'enqueue':
-				#try:
-				count = len(data['videos'])
-				SQL = "INSERT INTO queue(video_type, filename, save_dir, imdb_id, title, season, episode, raw_url, url, fileid, source_addon) VALUES(?,?,?,?,?,?,?,?,?,?,?)"
-				inserts =[]
-				for video in data['videos']:
-					raw_url = video['raw_url']
-					url = video['url']
-					file_id = hashlib.md5(url).hexdigest()
-					if 'resolve' in video.keys():
-						if video['resolve'] == 'true':
-							raw_url = video['url']
-							url = ''
-					save_dir = video['save_dir'] if 'save_dir' in video.keys() else ''
-					imdb_id = video['imdb_id'] if 'imdb_id' in video.keys() else ''
-					title = video['title'] if 'title' in video.keys() else ''
-					season = video['season'] if 'season' in video.keys() else ''
-					episode = video['episode'] if 'episode' in video.keys() else ''
-					addon = video['addon'] if 'addon' in video.keys() else ''
-					inserts.append((video['type'], video['filename'], save_dir, imdb_id, title, season, episode, raw_url, url, file_id, addon))
-				#DB=MyDatabaseAPI(DB_FILE)
-				DB.connect()
-				DB.execute_many(SQL, inserts)
-				DB.commit()
-				DB.disconnect()
-				self.do_Response({'status': 200, 'message': 'success', 'method': data['method'],'count': count})
-				#except:
-				#	self.send_error(500,'Internal Server Error')
+			if data['method'] == 'status':
+				try:
+					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'],'alive': True})
+				except:
+					self.send_error(500,'Internal Server Error')
+					
+			elif data['method'] == 'blacklist':
+				try:
+					hosts = ADDON.get_setting("blacklist_hosts").split(',')
+					for host in hosts:
+						self.blacklist.append(host.strip())
+
+					host = data['host']
+					blacklisted = host in self.blacklist
+					code = 406 if blacklisted else 200
+					self.do_Response({'status': code, 'message': 'success', 'method': data['method'],'host': host, 'blacklisted': blacklisted})
+				except:
+					self.send_error(500,'Internal Server Error')
+					
+			elif data['method'] == 'enqueue':
+				try:
+					count = len(data['videos'])
+					SQL = "INSERT INTO queue(video_type, filename, save_dir, imdb_id, title, season, episode, raw_url, url, fileid, source_addon) VALUES(?,?,?,?,?,?,?,?,?,?,?)"
+					inserts =[]
+					for video in data['videos']:
+						raw_url = video['raw_url']
+						url = video['url']
+						file_id = hashlib.md5(url).hexdigest()
+						if 'resolve' in video.keys():
+							if video['resolve'] == 'true':
+								raw_url = video['url']
+								url = ''
+						save_dir = video['save_dir'] if 'save_dir' in video.keys() else ''
+						imdb_id = video['imdb_id'] if 'imdb_id' in video.keys() else ''
+						title = video['title'] if 'title' in video.keys() else ''
+						season = video['season'] if 'season' in video.keys() else ''
+						episode = video['episode'] if 'episode' in video.keys() else ''
+						addon = video['addon'] if 'addon' in video.keys() else ''
+						inserts.append((video['type'], video['filename'], save_dir, imdb_id, title, season, episode, raw_url, url, file_id, addon))
+					DB.connect()
+					DB.execute_many(SQL, inserts)
+					DB.commit()
+					DB.disconnect()
+					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'],'count': count})
+				except:
+					self.send_error(500,'Internal Server Error')
 			elif data['method'] == 'restart':
 				try:
 					count = len(data['videos'])
-					#DB=MyDatabaseAPI(DB_FILE)
 					DB.connect()
 					SQL = "UPDATE queue SET status=1 WHERE id=?"
 					for video in data['videos']:
@@ -335,19 +346,20 @@ class RequestHandler(BaseHTTPRequestHandler):
 				except:
 					self.send_error(500,'Internal Server Error')
 			elif data['method'] == 'change_priority':
-				id = data['videos'][0]['id']
-				priority = data['videos'][0]['priority']
-				#DB=MyDatabaseAPI(DB_FILE)
-				DB.connect()
-				SQL = "UPDATE queue SET priority=? WHERE id=?"
-				DB.execute(SQL, [priority, id])
-				DB.commit()
-				DB.disconnect()
-				self.do_Response({'status': 200, 'message': 'success', 'method': data['method'],'id': id})
+				try:
+					id = data['videos'][0]['id']
+					priority = data['videos'][0]['priority']
+					DB.connect()
+					SQL = "UPDATE queue SET priority=? WHERE id=?"
+					DB.execute(SQL, [priority, id])
+					DB.commit()
+					DB.disconnect()
+					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'],'id': id})
+				except:
+					self.send_error(500,'Internal Server Error')
 			elif data['method'] == 'delete':
 				try:
 					count = len(data['videos'])
-					#DB=MyDatabaseAPI(DB_FILE)
 					DB.connect()
 					SQL = "DELETE FROM queue WHERE id=?"
 					for video in data['videos']:
@@ -358,7 +370,6 @@ class RequestHandler(BaseHTTPRequestHandler):
 				except:
 					self.send_error(500,'Internal Server Error')
 			elif data['method'] == 'progress':
-				#DB=MyDatabaseAPI(DB_FILE, quiet=True)
 				DB.connect()
 				queue = DB.query("SELECT id, video_type, filename, status, raw_url, fileid, priority, source_addon FROM queue ORDER BY priority DESC, id", force_double_array=True)
 				DB.disconnect()
@@ -367,26 +378,29 @@ class RequestHandler(BaseHTTPRequestHandler):
 					progress = json.loads(get_property(file_id +'.status'))
 					progress['complete'] = ''
 					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'progress': progress, 'queue': queue})
-				except:
+				except Exception as e:
 					complete = get_property("caching.complete")
 					clear_property("caching.complete")	
 					progress = {'id': 0, 'total_bytes': 0, 'cached_bytes': 0, 'cached_blocks': 0, 'total_blocks': 0, 'percent': 0, 'speed': 0, 'active_threads': 0, "complete": complete}
 					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'progress': progress, 'queue': queue})
-					#self.send_error(500,'Internal Server Error')		
+				except:
+					self.send_error(500,'Internal Server Error')
 			elif data['method'] == 'queue':
-				#try:
-				DB.connect()
-				#DB=MyDatabaseAPI(DB_FILE)
-				rows = DB.query("SELECT id, video_type, filename, status, raw_url, fileid, priority, source_addon FROM queue ORDER BY priority DESC, id", force_double_array=True)
-				DB.disconnect()
-				self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'queue': rows})
-				#except:
-				#	self.send_error(500,'Internal Server Error')
+				try:
+					DB.connect()
+					rows = DB.query("SELECT id, video_type, filename, status, raw_url, fileid, priority, source_addon FROM queue ORDER BY priority DESC, id", force_double_array=True)
+					DB.disconnect()
+					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'queue': rows})
+				except:
+					self.send_error(500,'Internal Server Error')
 			elif data['method'] == 'poll':
-				DB.connect()
-				SQL = "SELECT filename, url, id, video_type, raw_url, save_dir FROM queue WHERE status=1 ORDER BY priority DESC, id LIMIT 1"
-				row = DB.query_assoc(SQL)
-				self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'poll': row})
+				try:
+					DB.connect()
+					SQL = "SELECT filename, url, id, video_type, raw_url, save_dir FROM queue WHERE status=1 ORDER BY priority DESC, id LIMIT 1"
+					row = DB.query_assoc(SQL)
+					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'poll': row})
+				except:
+					self.send_error(500,'Internal Server Error')	
 			elif data['method'] == 'tvshows':
 				try:
 					videos = vfs.ls(TVSHOW_DIRECTORY, pattern="(avi|mp4|mkv|mov|flv)$")[1]
@@ -410,7 +424,6 @@ class RequestHandler(BaseHTTPRequestHandler):
 			elif data['method'] == 'abort':
 				try:
 					DB.connect()
-					#DB=MyDatabaseAPI(DB_FILE)
 					if 'file_id' in data:
 						file_id = data['file_id']
 					else:
@@ -429,9 +442,6 @@ class RequestHandler(BaseHTTPRequestHandler):
 			
 		else:
 			self.send_error(403,'Forbidden')
-		#except IOError:
-		#	self.send_error(500,'Internal Server Error')
-		#	return False
 
 			
 	def do_Response(self, content={'status': 200, 'message': 'success'}, content_type='application/json', response=200):

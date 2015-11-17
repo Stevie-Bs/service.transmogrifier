@@ -80,7 +80,6 @@ def view_queue():
 			while True:
 				if self.abort_polling: break
 				results = TM.get_progress()
-				print results
 				self.update(results)
 				xbmc.sleep(1000)
 			
@@ -100,7 +99,6 @@ def view_queue():
 				if not old_host:
 					history.append({"host": ADDON.get_setting('remote_host'), "port": ADDON.get_setting('remote_control_port'), "pin": ADDON.get_setting('remote_auth_pin')})	
 				vfs.write_file(hosts_file, history, mode='w', json=True)
-				print history
 			else:
 				connection = connection % ('localhost', ADDON.get_setting('control_port'))
 			self.getControl(80013).setLabel(connection)
