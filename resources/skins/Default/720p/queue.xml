@@ -116,8 +116,27 @@
 			<label></label>
 		</control>
 		
+		<control type="button" id="80020">
+			<posx>1050</posx>
+			<posy>100</posy>
+			<width>120</width>
+			<height>32</height>
+			<font>font12</font>
+			<label>Settings</label>
+			<textcolor>yellow</textcolor>
+			<focusedcolor>FFFFFFFF</focusedcolor>
+			<colordiffuse>FFFFFFFF</colordiffuse>
+			<texturefocus>Button/KeyboardKey.png</texturefocus>
+			<texturenofocus>Button/KeyboardKeyNF.png</texturenofocus>
+			<pulseonselect>true</pulseonselect>
+			<align>center</align>
+			<aligny>center</aligny>
+			<ondown>80000</ondown>
+			<onclick>Addon.OpenSettings(service.transmogrifier)</onclick>
+		</control>
+		
 		<control type="label">
-			<posx>650</posx>
+			<posx>600</posx>
 			<posy>100</posy>
 			<width>110</width>
 			<height>22</height>
@@ -127,9 +146,9 @@
 		</control>
 		
 		<control type="label" id="80013">
-			<posx>750</posx>
+			<posx>700</posx>
 			<posy>100</posy>
-			<width>350</width>
+			<width>400</width>
 			<height>22</height>
 			<font>font13</font>
 			<align>left</align>
@@ -137,7 +156,7 @@
 		</control>
 
 		<control type="label">
-			<posx>650</posx>
+			<posx>600</posx>
 			<posy>135</posy>
 			<width>110</width>
 			<height>22</height>
@@ -147,9 +166,9 @@
 		</control>
 		
 		<control type="label" id="80014">
-			<posx>750</posx>
+			<posx>700</posx>
 			<posy>135</posy>
-			<width>350</width>
+			<width>400</width>
 			<height>22</height>
 			<font>font13</font>
 			<align>left</align>
@@ -157,7 +176,7 @@
 		</control>
 		
 		<control type="label">
-			<posx>650</posx>
+			<posx>600</posx>
 			<posy>170</posy>
 			<width>110</width>
 			<height>22</height>
@@ -167,9 +186,9 @@
 		</control>
 		
 		<control type="label" id="80015">
-			<posx>750</posx>
+			<posx>700</posx>
 			<posy>170</posy>
-			<width>350</width>
+			<width>400</width>
 			<height>22</height>
 			<font>font13</font>
 			<align>left</align>
@@ -183,7 +202,7 @@
 			<height>365</height>
 			<onleft></onleft>
 			<onright>80001</onright>
-			<onup></onup>
+			<onup>80020</onup>
 			<ondown></ondown>
 			<scrolltime tween="sine" easing="out">200</scrolltime>
 			<autoscroll>false</autoscroll>
