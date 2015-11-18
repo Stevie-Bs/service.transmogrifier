@@ -93,6 +93,7 @@ class InputHandler():
 	def __init__(self, url, raw_url, file_id, total_blocks, total_bytes, headers, completed_blocks = []):
 		self.__headers = headers
 		self.__streaming = False
+		self.__abort = False
 		self.__url = url
 		self.__file_id = file_id
 		self.__block_size = BLOCK_SIZE
@@ -121,6 +122,7 @@ class InputHandler():
 		attempt = 0
 		block = False
 		while attempt < RETRY_ATTEMPTS:
+			if self.__abort: return False
 			if get_property("streaming.seek_block") and block_number < int(get_property("streaming.seek_block")): return False
 			attempt += 1
 			ADDON.log("block %s attempt %s" % (block_number, attempt), LOG_LEVEL.STANDARD)
@@ -142,18 +144,13 @@ class InputHandler():
 			return self.read_remote_block(block_number), cached
 		
 	def read_block(self, block_number):
-		return self.__output_queue.pop(block_number, False)
-
-		'''cached = self.is_cached(block_number)
-		if cached:
-			if self.__streaming: 
-				return self.__output_queue.get(block_number)
-			else:
-				return self.read_cached_block(block_number)
-		else:
-			print "need to reprioritize queue here if delta block is greater then allowed"
-			# need to reprioritize queue here if delta block is greater then allowed
-			return False'''
+		try:
+			block = self.__output_queue[block_number]
+		except:
+			block = False
+		return block
+	
+		#return self.__output_queue.pop(block_number, False)
 	
 	def save_block(self, block_number, block):
 		self.__output_queue[block_number] = block
@@ -232,7 +229,6 @@ class Transmogrifier():
 			clear_property(self.file_id +'.status')
 			ADDON.log("Aborting Transmogrification...", LOG_LEVEL.VERBOSE)
 			ADDON.log("Cleaning Cache...", LOG_LEVEL.VERBOSE)
-			#vfs.rm(self.output_file, quiet=True)	# should I remove the cached file?
 			ADDON.log("Waiting to Transmogrify...", LOG_LEVEL.VERBOSE)
 			self.__aborting = True
 		
@@ -330,6 +326,11 @@ class Transmogrifier():
 		ADDON.log("Seek to block %s " % first_block, LOG_LEVEL.VERBOSE)
 		set_property("streaming.seek_block", str(first_block))
 		self.Pool.emptyQueue()
+		try:
+			self.Input.__abort = True
+			time.sleep(.25)
+			del self.Input
+		except: pass
 		self.Input = InputHandler(self.url, self.raw_url, self.file_id, self.total_blocks, self.total_bytes, self.__headers)
 		self.Input.__streaming = True
 		self.started = time.time()
