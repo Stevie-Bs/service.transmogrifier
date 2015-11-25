@@ -180,17 +180,22 @@ class RequestHandler(BaseHTTPRequestHandler):
 				for header in self._response_headers.keys():
 					self.send_header(header, self._response_headers[header])
 				self.end_headers()
-				ADDON.log(str(self._response_headers), LOG_LEVEL.VERBOSE)
-				if not get_property("streaming.started"):
-					set_property("streaming.started", "true")
-					ADDON.log("Start streaming at %s bytes" % current_byte, LOG_LEVEL.VERBOSE) 
-					TM.stream(current_byte)
+				if (end_byte - current_byte) < 65537 :
+					ADDON.log("Kodi wants the last 2 byte chunks. Lets get them and send it", LOG_LEVEL.VERBOSE)
+					last_byte = TM.get_last_byte(current_byte)
+					self.wfile.write(last_byte)
 				else:
-					ADDON.log("Attempt to seek to %s bytes" % current_byte, LOG_LEVEL.VERBOSE) 
-					TM.seek(current_byte)
-				self.send_video(TM, current_byte, TM.total_bytes)
-				
-				del TM
+					ADDON.log(str(self._response_headers), LOG_LEVEL.VERBOSE)
+					if not get_property("streaming.started"):
+						set_property("streaming.started", "true")
+						ADDON.log("Start streaming at %s bytes" % current_byte, LOG_LEVEL.VERBOSE) 
+						TM.stream(current_byte)
+					else:
+						ADDON.log("Attempt to seek to %s bytes (%s)" % (current_byte, end_byte - current_byte), LOG_LEVEL.VERBOSE) 
+						TM.seek(current_byte)
+					self.send_video(TM, current_byte, TM.total_bytes)
+					
+					del TM
 
 
 		

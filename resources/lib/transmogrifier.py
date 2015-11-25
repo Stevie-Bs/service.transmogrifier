@@ -336,6 +336,23 @@ class Transmogrifier():
 		self.started = time.time()
 		for block_number in range(first_block, self.total_blocks+1):
 			self.Pool.queueTask(self.transmogrify, block_number, block_number, self.transmogrified)
+	
+	def get_last_byte(self, last_byte):
+		r = 'bytes=%s-' % last_byte
+		while True:
+			if self.check_abort(): return False
+			try:
+				headers = self.__headers
+				headers["Range"] = r
+				req = urllib2.Request(self.url, headers=headers)
+				f = urllib2.urlopen(req, timeout=2)
+				last_byte = f.read()
+				f.close()
+				if last_byte:
+					return last_byte
+			except:
+				pass
+			time.sleep(.1)
 		
 	def read_block(self, start_byte=0):
 		end_byte = (start_byte + self.block_size) - 1

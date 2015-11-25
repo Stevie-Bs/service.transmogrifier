@@ -13,6 +13,7 @@
 		<setting id="thread_number" type="slider" label="Max Threads" default="5" option="int" range="1,10"/>
 		<setting id="block_size" type="labelenum" label="Block Size (MB)" values="0.5|1|1.5|2|2.5|5" default="1.5" />
 		<setting id="retry_attempts" type="slider" label="Retry Attempts/Block" default="5" option="int" range="1,25"/>
+		<setting id="stream_caching" type="labelenum" label="Streaming Cache" values="Disk|Memory" default="Memory" />
 		<setting type="lsep" label="General"/>
 		<setting id="log_level" type="enum" values="Standard|Verbose" label="Log Level" default="1"/>
 		</category>
