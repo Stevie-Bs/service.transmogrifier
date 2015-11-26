@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <window id="81000">
-	<defaultcontrol>80000</defaultcontrol>
+	<defaultcontrol>82003</defaultcontrol>
 	<allowoverlay>yes</allowoverlay>
 	<animation effect="fade" time="100">WindowOpen</animation>
 	<animation effect="fade" time="100">WindowClose</animation>
@@ -73,7 +73,6 @@
 			<aligny>center</aligny>
 			<onright>82002</onright>
 			<onup>80000</onup>
-			<onclick>Addon.OpenSettings(service.transmogrifier)</onclick>
 		</control>
 
 		<control type="button" id="82002">

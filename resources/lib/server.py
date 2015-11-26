@@ -310,6 +310,13 @@ class RequestHandler(BaseHTTPRequestHandler):
 					self.do_Response({'status': code, 'message': 'success', 'method': data['method'],'host': host, 'blacklisted': blacklisted})
 				except:
 					self.send_error(500,'Internal Server Error')
+			
+			elif data['method'] == 'clear_queue':
+				DB.connect()
+				DB.execute("DELETE FROM queue WHERE status IN (-1, 0, 3)")
+				DB.commit()
+				DB.disconnect()
+				self.do_Response({'status': 200, 'message': 'success', 'method': data['method']})
 					
 			elif data['method'] == 'enqueue':
 				try:
