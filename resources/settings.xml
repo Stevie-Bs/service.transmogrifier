@@ -52,7 +52,7 @@
 		<setting id="database_mysql_port" type="number" label="Port" default="3306" enable="eq(-8,1)" subsetting="true" />
 		<setting id="database_sqlite_init" type="text" default="false" visible="false" />
 		<setting id="database_mysql_init" type="text" default="false" visible="false" />
-		<setting id="database_sqlite_version" type="number" default="" visible="false" />
-		<setting id="database_mysql_version" type="number" default="" visible="false" />
+		<setting id="database_sqlite_version" type="number" default="1" visible="false" />
+		<setting id="database_mysql_version" type="number" default="1" visible="false" />
 	</category>
 </settings>

@@ -288,9 +288,9 @@ class RequestHandler(BaseHTTPRequestHandler):
 				else: self.do_Response({'status': 401, 'message': 'Unauthorized', 'method': data['method']})
 				return
 
-			if data['token'] not in VALID_TOKENS:
-				self.send_error(401,'Unauthorized')
-				return
+			#if data['token'] not in VALID_TOKENS:
+			#	self.send_error(401,'Unauthorized')
+			#	return
 
 			if data['method'] == 'status':
 				try:
