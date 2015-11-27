@@ -288,9 +288,9 @@ class RequestHandler(BaseHTTPRequestHandler):
 				else: self.do_Response({'status': 401, 'message': 'Unauthorized', 'method': data['method']})
 				return
 
-			#if data['token'] not in VALID_TOKENS:
-			#	self.send_error(401,'Unauthorized')
-			#	return
+				#if data['token'] not in VALID_TOKENS:
+				#	self.send_error(401,'Unauthorized')
+				#	return
 
 			if data['method'] == 'status':
 				try:
@@ -312,11 +312,14 @@ class RequestHandler(BaseHTTPRequestHandler):
 					self.send_error(500,'Internal Server Error')
 			
 			elif data['method'] == 'clear_queue':
-				DB.connect()
-				DB.execute("DELETE FROM queue WHERE status IN (-1, 0, 3)")
-				DB.commit()
-				DB.disconnect()
-				self.do_Response({'status': 200, 'message': 'success', 'method': data['method']})
+				try:
+					DB.connect()
+					DB.execute("DELETE FROM queue WHERE status IN (-1, 0, 3)")
+					DB.commit()
+					DB.disconnect()
+					self.do_Response({'status': 200, 'message': 'success', 'method': data['method']})
+				except:
+					self.send_error(500,'Internal Server Error')
 					
 			elif data['method'] == 'enqueue':
 				try:
@@ -410,6 +413,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 					DB.connect()
 					SQL = "SELECT filename, url, id, video_type, raw_url, save_dir FROM queue WHERE status=1 ORDER BY priority DESC, id LIMIT 1"
 					row = DB.query_assoc(SQL)
+					DB.disconnect()
 					self.do_Response({'status': 200, 'message': 'success', 'method': data['method'], 'poll': row})
 				except:
 					self.send_error(500,'Internal Server Error')	

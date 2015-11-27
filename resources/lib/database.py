@@ -59,6 +59,7 @@ else:
 			self.execute(SQL)
 			self.commit()
 			ADDON.set_setting('database_sqlite_init', 'true')
+			print self.version_flag
 			ADDON.set_setting(self.version_flag, str(self.db_version))
 	DB_TYPE = 'sqlite'
 	DB_FILE = xbmc.translatePath(ADDON.get_setting('database_sqlite_file'))

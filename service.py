@@ -146,9 +146,9 @@ class Service(xbmc.Player):
 		httpd = server_class((address, CONTROL_PORT), RequestHandler)
 		webserver = Thread(target=httpd.serve_forever)
 		webserver.start()
-		self.DB.connect()	
-		while True:
-			if monitor.waitForAbort(1) or ADDON.get_setting('enable_transmogrifier')=='false':
+		self.DB.connect()
+		while not monitor.abortRequested():
+			if monitor.waitForAbort(1):
 				break
 			
 			filename, url, raw_url, id, file_id, video_type, save_dir = self.poll_queue()

@@ -51,7 +51,6 @@
 			<texturefocus>Button/DialogCloseButton-focus.png</texturefocus>
 			<texturenofocus>Button/DialogCloseButton.png</texturenofocus>
 			<pulseonselect>true</pulseonselect>
-			<onclick>Dialog.Close(all, true)</onclick>
 		</control>
 		
 
@@ -113,7 +112,6 @@
 			<aligny>center</aligny>
 			<onleft>82002</onleft>
 			<onup>80000</onup>
-			<onclick>Dialog.Close(all, true)</onclick>
 		</control>
 		
 		<control type="progress" id="80050">

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<addon id="service.transmogrifier" name="Transmogrifier" provider-name="DudeHere" version="0.1.30">
+<addon id="service.transmogrifier" name="Transmogrifier" provider-name="DudeHere" version="0.1.31">
     <requires>
         <import addon="xbmc.python" version="2.1.0" />
         <import addon="script.module.dudehere.routines" />
@@ -10,12 +10,12 @@
     <extension library="default.py" point="xbmc.python.script">
         <provides>executable</provides>
     </extension>
-    <extension point="kodi.context.item" library="default.py">
-    <item>
-        <label>Transmogrifier Queue</label>
-        <visible>True</visible>
-      </item>
-    </extension> 
+    <extension library="default__.py" point="kodi.context.item">
+        <item>
+            <label>Transmogrifier Queue</label>
+            <visible>True</visible>
+        </item>
+    </extension>
     <extension library="service.py" point="xbmc.service" start="startup" />
     <extension point="xbmc.addon.metadata">
         <platform>all</platform>

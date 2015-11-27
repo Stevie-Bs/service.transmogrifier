@@ -4,7 +4,6 @@
 import os
 import sys
 import math
-import time
 import xbmc,xbmcgui
 from threading import Thread
 from dudehere.routines import *
@@ -228,16 +227,14 @@ def view_queue():
 				pass
 			
 		def onClick(self, controlID):
-			if controlID==82001:
+			pass
+			if controlID in [82003, 82000]: 
+				self.close()
+			elif controlID==82001:
 				TM.clean_queue()
 				queue = TM.get_queue()
 				self.update(queue)
-			
-			elif controlID==82004:
-				ADDON.set_setting('enable_transmogrifier', 'false')
-				time.sleep(1.25)
-				ADDON.set_setting('enable_transmogrifier', 'true')
-				xbmc.executebuiltin("RunAddon(service.transmogrifier)")
+
 		
 		def onFocus(self, controlID):
 			pass
