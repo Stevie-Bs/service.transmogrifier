@@ -76,7 +76,6 @@ def view_queue():
 			xbmcgui.WindowXML.__init__(self)
 		
 		def poll_queue(self):
-			i = 0
 			while True:
 				if self.abort_polling: break
 				results = TM.get_progress()
@@ -232,8 +231,9 @@ def view_queue():
 				self.close()
 			elif controlID==82001:
 				TM.clean_queue()
-				queue = TM.get_queue()
-				self.update(queue)
+				#self.current_id = -1
+				#queue = TM.get_queue()
+				#self.update(queue)
 
 		
 		def onFocus(self, controlID):
