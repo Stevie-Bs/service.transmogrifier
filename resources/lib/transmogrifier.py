@@ -165,7 +165,13 @@ class InputHandler():
 			f = urllib2.urlopen(req, timeout=2)
 			if f.getcode() != 206: return False
 			change_thread_count(1)
-			block = f.read(self.__block_size)
+			block = ''
+			while True:
+				if self.__abort: return False
+				bite = f.read(1024)
+				if not bite: break
+				block += bite
+				#block = f.read(self.__block_size)
 			f.close()
 			change_thread_count(-1)
 		except Exception, e:
