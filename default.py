@@ -226,7 +226,7 @@ def view_queue():
 				pass
 			
 		def onClick(self, controlID):
-			pass
+
 			if controlID in [82003, 82000]: 
 				self.close()
 			elif controlID==82001:

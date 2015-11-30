@@ -114,6 +114,7 @@
 			<onup>80000</onup>
 		</control>
 		
+		
 		<control type="progress" id="80050">
 			<description>Progress</description>
 			<posx>110</posx>

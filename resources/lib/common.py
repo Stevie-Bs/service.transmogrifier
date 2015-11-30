@@ -20,6 +20,7 @@ MOVIE_DIRECTORY = vfs.join(CACHE_DIRECTORY, 'Movies')
 TVSHOW_DIRECTORY = vfs.join(CACHE_DIRECTORY, 'TV Shows')
 
 BLOCK_SIZE = int(float(ADDON.get_setting('block_size')) * 1024 * 1024)
+FRAME_SIZE = int(ADDON.get_setting('frame_size'))
 RETRY_ATTEMPTS = int(ADDON.get_setting('retry_attempts'))
 
 WINDOW_PREFIX = 'transmogrifier'

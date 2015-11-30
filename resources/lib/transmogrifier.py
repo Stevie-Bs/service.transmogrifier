@@ -27,6 +27,8 @@ class OutputHandler():
 		self.__total_blocks = total_blocks
 		self.__completed_blocks = completed_blocks
 		self.__queue = MyPriorityQueue()
+		self.__stream_disk_caching = ADDON.get_setting('stream_caching') == 'Disk'
+		
 		self.cache_file = vfs.join(WORK_DIRECTORY, self.__file_id + '.temp')
 		self.state_file = vfs.join(WORK_DIRECTORY, self.__file_id + '.state')
 		if video_type=='tvshow':
@@ -101,7 +103,11 @@ class InputHandler():
 		self.__total_bytes = total_bytes
 		self.__completed_blocks = completed_blocks
 		self.__output_queue = {}
-		self.__cache_file = vfs.join(CACHE_DIRECTORY, self.__file_id + '.temp')	
+		self.__cache_file = vfs.join(CACHE_DIRECTORY, self.__file_id + '.temp')
+		clear_property('streaming.abort')
+	
+	def check_abort(self):
+		return get_property('streaming.abort')
 	
 	def is_cached(self, block_number):
 		if get_property('streaming.started'): return False
@@ -122,7 +128,7 @@ class InputHandler():
 		attempt = 0
 		block = False
 		while attempt < RETRY_ATTEMPTS:
-			if self.__abort: return False
+			if self.check_abort(): return False
 			if get_property("streaming.seek_block") and block_number < int(get_property("streaming.seek_block")): return False
 			attempt += 1
 			ADDON.log("block %s attempt %s" % (block_number, attempt), LOG_LEVEL.STANDARD)
@@ -167,11 +173,10 @@ class InputHandler():
 			change_thread_count(1)
 			block = ''
 			while True:
-				if self.__abort: return False
-				bite = f.read(1024)
+				if self.check_abort(): return False
+				bite = f.read(FRAME_SIZE)
 				if not bite: break
 				block += bite
-				#block = f.read(self.__block_size)
 			f.close()
 			change_thread_count(-1)
 		except Exception, e:
@@ -233,15 +238,18 @@ class Transmogrifier():
 			clear_property('abort_id')
 			clear_property("caching.file_id")
 			clear_property(self.file_id +'.status')
+			clear_property('streaming.abort')
 			ADDON.log("Aborting Transmogrification...", LOG_LEVEL.VERBOSE)
 			ADDON.log("Cleaning Cache...", LOG_LEVEL.VERBOSE)
 			ADDON.log("Waiting to Transmogrify...", LOG_LEVEL.VERBOSE)
 			self.__aborting = True
 		
 	def transmogrify(self, block_number):
-		if get_property("streaming.seek_block") and block_number < int(get_property("streaming.seek_block")): return [True, block_number]
+		if get_property("streaming.seek_block"):
+			if block_number < int(get_property("streaming.seek_block")): 
+				return [True, block_number]
 		if self.check_abort(): 
-			print "abort all"
+			ADDON.log("Abort All", LOG_LEVEL.STANDARD)
 			self.abort_all()
 			return False
 		block, cached = self.Input.get_block(block_number)
@@ -271,7 +279,7 @@ class Transmogrifier():
 			return False
 		status = result[0]
 		block_number = result[1]
-		if status is False:
+		if status is False and not get_property('streaming.abort'):
 			if get_property("streaming.seek_block") and block_number < int(get_property("streaming.seek_block")): return
 			ADDON.log("Requeue %s" % block_number, LOG_LEVEL.STANDARD)
 			self.Pool.queueTask(self.transmogrify, block_number, block_number, self.transmogrified)
@@ -331,12 +339,11 @@ class Transmogrifier():
 		first_block = self.get_block_number_from_byte(start_byte)
 		ADDON.log("Seek to block %s " % first_block, LOG_LEVEL.VERBOSE)
 		set_property("streaming.seek_block", str(first_block))
+		set_property('streaming.abort', 'true')
 		self.Pool.emptyQueue()
-		try:
-			self.Input.__abort = True
-			time.sleep(.25)
-			del self.Input
-		except: pass
+		time.sleep(.25)
+		del self.Input
+
 		self.Input = InputHandler(self.url, self.raw_url, self.file_id, self.total_blocks, self.total_bytes, self.__headers)
 		self.Input.__streaming = True
 		self.started = time.time()
@@ -345,6 +352,7 @@ class Transmogrifier():
 	
 	def get_last_byte(self, last_byte):
 		r = 'bytes=%s-' % last_byte
+		set_property('streaming.abort', 'true')
 		while True:
 			if self.check_abort(): return False
 			try:
@@ -355,6 +363,7 @@ class Transmogrifier():
 				last_byte = f.read()
 				f.close()
 				if last_byte:
+					clear_property('streaming.abort')
 					return last_byte
 			except:
 				pass

@@ -126,6 +126,7 @@ class Service(xbmc.Player):
 		self.DB.connect()
 		self.DB.execute("UPDATE queue SET status=-1 WHERE status=2")
 		self.DB.commit()
+
 		
 	def start(self):
 		if DB_TYPE == 'sqlite':
@@ -141,16 +142,15 @@ class Service(xbmc.Player):
 		else:
 			address = "0.0.0.0"
 		ADDON.log("Launching WebInterface on: %s:%s" % (address, CONTROL_PORT))
-		#socket.setdefaulttimeout(10)
+		
 		server_class = ThreadedHTTPServer
 		httpd = server_class((address, CONTROL_PORT), RequestHandler)
 		webserver = Thread(target=httpd.serve_forever)
 		webserver.start()
 		self.DB.connect()
 		while not monitor.abortRequested():
-			if monitor.waitForAbort(1):
+			if monitor.waitForAbort(1) or get_property('service.abort'):
 				break
-			
 			filename, url, raw_url, id, file_id, video_type, save_dir = self.poll_queue()
 			if id:
 				ADDON.log("Starting to Transmogrify: %s" % filename,1)
@@ -174,7 +174,8 @@ class Service(xbmc.Player):
 							elif PLATFORM.startswith('darwin'):
 								call(["afplay"], wav)
 							elif PLATFORM.startswith('win'):
-								pass
+								import winsound
+								winsound.PlaySound(wav, winsound.SND_FILENAME)
 					except: pass
 				self.DB.commit()
 				del TM

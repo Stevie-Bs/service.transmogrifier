@@ -12,6 +12,7 @@
 		<setting label="Work Directory" type="folder" default="special://userdata/addon_data/service.transmogrifier/work" id="work_directory" enable="!eq(-1,false)" subsetting="true" />
 		<setting id="thread_number" type="slider" label="Max Threads" default="5" option="int" range="1,10"/>
 		<setting id="block_size" type="labelenum" label="Block Size (MB)" values="0.5|1|1.5|2|2.5|5" default="1.5" />
+		<setting id="frame_size" type="labelenum" label="Reading Frame (bytes)" values="1024|1536|2048|2560|3072|3584|4096|4608|5120" default="4096" />
 		<setting id="retry_attempts" type="slider" label="Retry Attempts/Block" default="5" option="int" range="1,25"/>
 		<setting id="stream_caching" type="enum" label="Streaming Cache" values="Disk|Memory" default="Memory" />
 		<setting id="limit_stream_cache_size" type="bool" label="Limit Streaming Cache Size on Disk" enable="eq(-1,0)" visible="eq(-1,0)" default="false" subsetting="true"/>
@@ -28,7 +29,7 @@
 		<setting id="auth_token" type="text" default="" visible="false"/>
 	</category>
 		<category label="Transmogrigier Client">
-		<setting id="notification" type="labelenum" label="Notification Sound (Linux,OSX Only)" Default="None" values="None|Bell|Disobedient|Door|Inquisitiveness|Job Done|Knob|Rocket Ammo|Samus Die|SMB 1UP|SMB Pause|SMB Vine|System Fault" />
+		<setting id="notification" type="labelenum" label="Notification Sound (Linux,OSX,Windows Only)" Default="None" values="None|Bell|Disobedient|Door|Inquisitiveness|Job Done|Knob|Rocket Ammo|Samus Die|SMB 1UP|SMB Pause|SMB Vine|System Fault" />
 		<setting type="lsep" label="The Transmogrifier management client can connect to a remote server."/>
 		<setting type="lsep" label="Leave this alone unless you know what you are doing."/>
 		<setting id="blacklist_hosts" type="text" label="Blacklisted Hosts (comma separated list)" default=""/>
