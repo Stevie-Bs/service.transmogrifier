@@ -239,6 +239,7 @@ class Transmogrifier():
 			clear_property("caching.file_id")
 			clear_property(self.file_id +'.status')
 			clear_property('streaming.abort')
+			clear_property('streaming.tail_requested')
 			ADDON.log("Aborting Transmogrification...", LOG_LEVEL.VERBOSE)
 			ADDON.log("Cleaning Cache...", LOG_LEVEL.VERBOSE)
 			ADDON.log("Waiting to Transmogrify...", LOG_LEVEL.VERBOSE)
@@ -339,10 +340,10 @@ class Transmogrifier():
 		first_block = self.get_block_number_from_byte(start_byte)
 		ADDON.log("Seek to block %s " % first_block, LOG_LEVEL.VERBOSE)
 		set_property("streaming.seek_block", str(first_block))
+
 		set_property('streaming.abort', 'true')
 		self.Pool.emptyQueue()
 		time.sleep(.25)
-		del self.Input
 
 		self.Input = InputHandler(self.url, self.raw_url, self.file_id, self.total_blocks, self.total_bytes, self.__headers)
 		self.Input.__streaming = True
@@ -351,7 +352,7 @@ class Transmogrifier():
 			self.Pool.queueTask(self.transmogrify, block_number, block_number, self.transmogrified)
 	
 	def get_last_byte(self, last_byte):
-		r = 'bytes=%s-' % last_byte
+		''''r = 'bytes=%s-' % last_byte
 		set_property('streaming.abort', 'true')
 		while True:
 			if self.check_abort(): return False
@@ -368,6 +369,8 @@ class Transmogrifier():
 			except:
 				pass
 			time.sleep(.1)
+		'''
+		pass
 		
 	def read_block(self, start_byte=0):
 		end_byte = (start_byte + self.block_size) - 1
@@ -383,6 +386,33 @@ class Transmogrifier():
 		block_number = int(math.floor(float(start_byte) / self.block_size))
 		return block_number
 
+	def request_tail_bytes(self):
+		tail_bytes = ''
+		self.tail_file = vfs.join(WORK_DIRECTORY, self.file_id + '.tail')
+		if not get_property('streaming.tail_requested'):
+			ADDON.log("Requesting Remote Tail Bytes")
+			out_f = open(self.tail_file, 'wb')
+			tail_byte = self.total_bytes - 65536
+			r = 'bytes=%s-' % tail_byte
+			headers = self.__headers
+			headers["Range"] = r
+			req = urllib2.Request(self.url, headers=headers)
+			in_f = urllib2.urlopen(req, timeout=2)
+			tail_bytes = in_f.read()
+			out_f.write( tail_bytes )
+			in_f.close()
+			out_f.close()
+			set_property('streaming.tail_requested', 'true')
+		else:
+			ADDON.log("Reading Cached Tail Bytes")
+			in_f = open(self.tail_file, 'rb')
+			tail_bytes = in_f.read()
+			in_f.close()
+		return tail_bytes
+	
+	def get_tail_bytes(self):
+		tail_bytes = self.request_tail_bytes()
+		
 	def get_target_info(self):
 		table = {
 			"application/x-troff-msvideo":		"avi",
@@ -395,8 +425,6 @@ class Transmogrifier():
 			"video/flv":						"flv",
 			"video/x-flv":						"flv"
 		}
-		
-		
 		try:
 			req = urllib2.Request(self.url, headers=self.__headers)
 			self.net = urllib2.urlopen(req, timeout=3)
@@ -418,6 +446,10 @@ class Transmogrifier():
 					ADDON.log("No content-type found, assuming avi", LOG_LEVEL.VERBOSE)
 					self.extension = 'avi'
 			set_property(self.file_id +'.status', json.dumps({'id': self.id, 'total_bytes': self.total_bytes, 'cached_bytes': self.cached_bytes, 'cached_blocks': 0, 'total_blocks': self.total_blocks, 'percent': 0, 'speed': 0}))
+		
+			if self.video_type == 'stream':
+				self.request_tail_bytes()
+		
 		except urllib2.URLError, e:
 			ADDON.log("HTTP Error: %s" % e, LOG_LEVEL.VERBOSE)
 			ADDON.raise_notify("%s ERROR" % ADDON_NAME, "Unable to open URL","HTTP Error: %s" % e)

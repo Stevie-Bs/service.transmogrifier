@@ -72,9 +72,13 @@ class Service(xbmc.Player):
 	
 	def onPlayBackStopped(self):
 		if get_property('streaming.started'):
+			vfs = VFSClass()
 			ADDON.log("Now I'm stopped")
 			ADDON.log("Abort: %s" % get_property('file_id'))
 			set_property("abort_id", get_property('file_id'))
+			tail_file = vfs.join(WORK_DIRECTORY, get_property('file_id') + '.tail')
+			if vfs.exists(tail_file):
+				vfs.rm(tail_file,quiet=True)
 			time.sleep(0.25)
 			clear_property("abort_id")
 			clear_property('playing')
@@ -85,6 +89,7 @@ class Service(xbmc.Player):
 			clear_property("streaming.file_id")
 			clear_property("streaming.abort")
 			clear_property("streaming.seek_block")
+			clear_property('streaming.tail_requested')
 	
 	def onPlayBackEnded(self):
 		self.onPlayBackStopped()
@@ -118,7 +123,7 @@ class Service(xbmc.Player):
 		if ADDON.get_setting('clear_cache') == "true":
 			vfs = VFSClass()
 			ADDON.log("Clearing download cache...")
-			files = vfs.ls(WORK_DIRECTORY, pattern='state$|temp$')
+			files = vfs.ls(WORK_DIRECTORY, pattern='state$|temp$|tail$')
 			for foo in files[1]:
 				path = vfs.join(WORK_DIRECTORY, foo)
 				vfs.rm(path, quiet=True)

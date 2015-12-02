@@ -163,7 +163,6 @@ class RequestHandler(BaseHTTPRequestHandler):
 					TM.total_blocks = int(get_property("streaming.total_blocks"))
 				except:
 					self.send_error(500,'Internal Server Error')
-				
 				current_byte = 0
 				
 				try:
@@ -182,8 +181,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 				self.end_headers()
 				if (end_byte - current_byte) < 65537 :
 					ADDON.log("Kodi wants the last 2 byte chunks. Lets get them and send it", LOG_LEVEL.VERBOSE)
-					last_byte = TM.get_last_byte(current_byte)
-					self.wfile.write(last_byte)
+					tail_bytes = TM.get_tail_byte()
+					self.wfile.write(tail_bytes)
 				else:
 					ADDON.log(str(self._response_headers), LOG_LEVEL.VERBOSE)
 					if not get_property("streaming.started"):
